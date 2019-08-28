@@ -1,4 +1,4 @@
-local dataset_path = "/home/amol/datasets/spider/";
+local dataset_path = "/home/amol/datasets/SS30/";
 
 {
   "random_seed": 5,
@@ -20,7 +20,7 @@ local dataset_path = "/home/amol/datasets/spider/";
     "keep_if_unparsable": true,
     "loading_limit": -1
   },
-  "train_data_path": dataset_path + "train_spider.json",
+  "train_data_path": dataset_path + "train.json",
   "validation_data_path": dataset_path + "dev.json",
   "model": {
     "type": "spider",

@@ -84,7 +84,7 @@ class SpiderDatasetReader(DatasetReader):
                         pass
 
                 query_tokens = None
-                if 'query_toks' in ex:
+                if 'query_toks' in ex and 'query_toks_no_value' in ex:
                     # we only have 'query_toks' in example for training/dev sets
 
                     # fix for examples: we want to use the 'query_toks_no_value' field of the example which anonymizes
