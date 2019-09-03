@@ -20,8 +20,8 @@ local dataset_path = "/home/amol/datasets/SS30/";
     "keep_if_unparsable": false,
     "loading_limit": -1
   },
-  "train_data_path": dataset_path + "train_ss30.json",
-  "validation_data_path": dataset_path + "dev.json",
+  "train_data_path": dataset_path + "train_dev_ss30.json",
+  "validation_data_path": dataset_path + "test.json",
   "model": {
     "type": "spider",
     "dataset_path": dataset_path,
@@ -69,9 +69,9 @@ local dataset_path = "/home/amol/datasets/SS30/";
     "batch_size" : 1
   },
   "trainer": {
-    "num_epochs": 20,
+    "num_epochs": 30,
     "cuda_device": -1,
-    "patience": 5,
+    "patience": 10,
     "validation_metric": "+sql_match",
     "optimizer": {
       "type": "adam",
