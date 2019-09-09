@@ -84,6 +84,7 @@ def get_schema(db):
     :return: schema dict
     """
 
+    print("DB", db)
     schema = {}
     conn = sqlite3.connect(db)
     cursor = conn.cursor()
@@ -115,6 +116,8 @@ def get_schema_from_json(fpath):
 
 def tokenize(string):
     string = str(string)
+    string = string.replace("\'\"","\"")
+    string = string.replace("\"\'","\"")
     string = string.replace("\'", "\"")  # ensures all string values wrapped by "" problem??
     quote_idxs = [idx for idx, char in enumerate(string) if char == '"']
     assert len(quote_idxs) % 2 == 0, "Unexpected quote"
