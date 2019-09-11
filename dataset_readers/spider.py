@@ -9,7 +9,7 @@ from allennlp.data import DatasetReader, Tokenizer, TokenIndexer, Field, Instanc
 from allennlp.data.fields import TextField, ProductionRuleField, ListField, IndexField, MetadataField
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.tokenizers import WordTokenizer
-from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
+from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter, BertBasicWordSplitter
 from overrides import overrides
 from spacy.symbols import ORTH, LEMMA
 
@@ -37,7 +37,10 @@ class SpiderDatasetReader(DatasetReader):
         # default spacy tokenizer splits the common token 'id' to ['i', 'd'], we here write a manual fix for that
         spacy_tokenizer = SpacyWordSplitter(pos_tags=True)
         spacy_tokenizer.spacy.tokenizer.add_special_case(u'id', [{ORTH: u'id', LEMMA: u'id'}])
-        self._tokenizer = WordTokenizer(spacy_tokenizer)
+        self._entity_tokenizer = WordTokenizer(spacy_tokenizer)
+
+        self._utterance_tokenizer = WordTokenizer(word_splitter=BertBasicWordSplitter(),
+                                                  start_tokens=['CLS'], end_tokens=['SEP'])
 
         self._utterance_token_indexers = question_token_indexers or {'tokens': SingleIdTokenIndexer()}
         self._keep_if_unparsable = keep_if_unparsable
@@ -124,7 +127,8 @@ class SpiderDatasetReader(DatasetReader):
                          sql: List[str] = None):
         fields: Dict[str, Field] = {}
 
-        db_context = SpiderDBContext(db_id, utterance, tokenizer=self._tokenizer,
+        db_context = SpiderDBContext(db_id, utterance, utterance_tokenizer=self._utterance_tokenizer,
+                                     entity_tokenizer=self._entity_tokenizer,
                                      tables_file=self._tables_file, dataset_path=self._dataset_path)
         table_field = SpiderKnowledgeGraphField(db_context.knowledge_graph,
                                                 db_context.tokenized_utterance,
@@ -132,7 +136,6 @@ class SpiderDatasetReader(DatasetReader):
                                                 entity_tokens=db_context.entity_tokens,
                                                 include_in_vocab=False,  # TODO: self._use_table_for_vocab,
                                                 max_table_tokens=None)  # self._max_table_tokens)
-
         world = SpiderWorld(db_context, query=sql)
         fields["utterance"] = TextField(db_context.tokenized_utterance, self._utterance_token_indexers)
 
