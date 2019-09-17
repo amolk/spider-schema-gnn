@@ -261,6 +261,10 @@ class SpiderParser(Model):
 
         feature_scores = self._linking_params(linking_features).squeeze(3)
 
+        # adjust for bert's extra [CLS] and [SEP]
+        if linking_scores.shape[-1] == feature_scores.shape[-1] + 2:
+          linking_scores = linking_scores[:, :, 1:-1]
+
         linking_scores = linking_scores + feature_scores
 
         # (batch_size, num_question_tokens, num_entities)
@@ -296,6 +300,11 @@ class SpiderParser(Model):
             entity_embeddings = torch.tanh(entity_type_embeddings)
 
         link_embedding = util.weighted_sum(entity_embeddings, linking_probabilities)
+
+        # adjust for bert's extra [CLS] and [SEP]
+        if embedded_utterance.shape[1] == link_embedding.shape[1] + 2:
+          embedded_utterance = embedded_utterance[:, 1:-1, :]
+
         encoder_input = torch.cat([link_embedding, embedded_utterance], 2)
 
         # (batch_size, utterance_length, encoder_output_dim)
@@ -789,6 +798,7 @@ class SpiderParser(Model):
             predicted_sql_query = action_sequence_to_sql(action_strings, add_table_names=True)
             outputs['predicted_sql_query'].append(sqlparse.format(predicted_sql_query, reindent=False))
 
+            print("\n========================\n", original_gold_sql_query, "\n", predicted_sql_query, "\n")
             if target_list is not None:
                 targets = target_list[i].data
             target_available = target_list is not None and targets[0] > -1

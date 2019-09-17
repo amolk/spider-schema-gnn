@@ -39,8 +39,7 @@ class SpiderDatasetReader(DatasetReader):
         spacy_tokenizer.spacy.tokenizer.add_special_case(u'id', [{ORTH: u'id', LEMMA: u'id'}])
         self._entity_tokenizer = WordTokenizer(spacy_tokenizer)
 
-        self._utterance_tokenizer = WordTokenizer(word_splitter=BertBasicWordSplitter(),
-                                                  start_tokens=['CLS'], end_tokens=['SEP'])
+        self._utterance_tokenizer = WordTokenizer(word_splitter=BertBasicWordSplitter())
 
         self._utterance_token_indexers = question_token_indexers or {'tokens': SingleIdTokenIndexer()}
         self._keep_if_unparsable = keep_if_unparsable
