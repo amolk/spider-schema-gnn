@@ -1,3 +1,6 @@
+import pdb
+import pprint
+
 import difflib
 import os
 from functools import partial
@@ -157,6 +160,7 @@ class SpiderParser(Model):
     @overrides
     def forward(self,  # type: ignore
                 utterance: Dict[str, torch.LongTensor],
+                utterance_with_entity_texts_inline: Dict[str, torch.LongTensor],
                 valid_actions: List[List[ProductionRule]],
                 world: List[SpiderWorld],
                 schema: Dict[str, torch.LongTensor],
@@ -165,7 +169,7 @@ class SpiderParser(Model):
         batch_size = len(world)
         device = utterance['tokens'].device
 
-        initial_state = self._get_initial_state(utterance, world, schema, valid_actions)
+        initial_state = self._get_initial_state(utterance, utterance_with_entity_texts_inline, world, schema, valid_actions)
 
         if action_sequence is not None:
             # Remove the trailing dimension (from ListField[ListField[IndexField]]).
@@ -215,14 +219,20 @@ class SpiderParser(Model):
 
     def _get_initial_state(self,
                            utterance: Dict[str, torch.LongTensor],
+                           utterance_with_entity_texts_inline: Dict[str, torch.LongTensor],
                            worlds: List[SpiderWorld],
                            schema: Dict[str, torch.LongTensor],
                            actions: List[List[ProductionRule]]) -> GrammarBasedState:
         schema_text = schema['text']
-        embedded_schema = self._question_embedder(schema_text, num_wrapping_dims=1)
+        # import pdb,sys;sys.stdout=sys.stdout.terminal;pdb.set_trace()
         schema_mask = util.get_text_field_mask(schema_text, num_wrapping_dims=1).float()
+        embedded_schema = self._question_embedder(schema_text, num_wrapping_dims=1)
 
-        embedded_utterance = self._question_embedder(utterance)
+        # Keep embedding only for [CLS], which is the first entity token
+        embedded_schema = embedded_schema[:,:,0,:].unsqueeze(dim=2)
+        # pdb.set_trace()
+        utterance_token_count = utterance['tokens'].shape[-1]
+        embedded_utterance = self._question_embedder(utterance_with_entity_texts_inline)[:,0:utterance_token_count,:]
         utterance_mask = util.get_text_field_mask(utterance).float()
 
         batch_size, num_entities, num_entity_tokens, _ = embedded_schema.size()
@@ -251,6 +261,18 @@ class SpiderParser(Model):
                                                                      num_entities,
                                                                      num_entity_tokens,
                                                                      num_question_tokens)
+
+        question_entity_similarity = question_entity_similarity[:, :, :, 1:-1]
+
+        # debug
+        pp = pprint.PrettyPrinter(indent=2)
+        print("\n\nentity map")
+        entities = worlds[0].db_context.knowledge_graph.entities
+        best_entity_token_index = question_entity_similarity[0].max(dim=1)[1]
+        best_entity_index = question_entity_similarity[0].max(dim=1)[0].max(dim=0)[1]
+        pp.pprint([entities[i.item()] for i in best_entity_index])
+        # pdb.set_trace()
+
         # (batch_size, num_entities, num_question_tokens)
         question_entity_similarity_max_score, _ = torch.max(question_entity_similarity, 2)
 
@@ -262,10 +284,11 @@ class SpiderParser(Model):
         feature_scores = self._linking_params(linking_features).squeeze(3)
 
         # adjust for bert's extra [CLS] and [SEP]
-        if linking_scores.shape[-1] == feature_scores.shape[-1] + 2:
-          linking_scores = linking_scores[:, :, 1:-1]
+        # if linking_scores.shape[-1] == feature_scores.shape[-1] + 2:
+        # linking_scores = linking_scores[:, :, 1:-1]
 
-        linking_scores = linking_scores + feature_scores
+        pdb.set_trace()
+        linking_scores = linking_scores + feature_scores[:, :, 0:linking_scores.shape[-1]]
 
         # (batch_size, num_question_tokens, num_entities)
         linking_probabilities = self._get_linking_probabilities(worlds, linking_scores.transpose(1, 2),
@@ -302,8 +325,8 @@ class SpiderParser(Model):
         link_embedding = util.weighted_sum(entity_embeddings, linking_probabilities)
 
         # adjust for bert's extra [CLS] and [SEP]
-        if embedded_utterance.shape[1] == link_embedding.shape[1] + 2:
-          embedded_utterance = embedded_utterance[:, 1:-1, :]
+        # if embedded_utterance.shape[1] == link_embedding.shape[1] + 2:
+        embedded_utterance = embedded_utterance[:, 1:-1, :]
 
         encoder_input = torch.cat([link_embedding, embedded_utterance], 2)
 
@@ -797,8 +820,8 @@ class SpiderParser(Model):
                               for action_index in best_action_indices]
             predicted_sql_query = action_sequence_to_sql(action_strings, add_table_names=True)
             outputs['predicted_sql_query'].append(sqlparse.format(predicted_sql_query, reindent=False))
-
             print("\n========================\n", original_gold_sql_query, "\n", predicted_sql_query, "\n")
+
             if target_list is not None:
                 targets = target_list[i].data
 

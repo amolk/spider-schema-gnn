@@ -1,3 +1,4 @@
+import pdb
 import re
 from collections import Set, defaultdict
 from typing import Dict, Tuple, List
@@ -40,7 +41,7 @@ class SpiderDBContext:
         self.db_id = db_id
         self.utterance = utterance
 
-        tokenized_utterance = utterance_tokenizer.tokenize(utterance.lower())
+        tokenized_utterance = utterance_tokenizer.tokenize(utterance)
         self.tokenized_utterance = [Token(text=t.text, lemma=t.lemma_) for t in tokenized_utterance]
 
         if db_id not in SpiderDBContext.schemas:
@@ -51,6 +52,11 @@ class SpiderDBContext:
 
         entity_texts = [self.knowledge_graph.entity_text[entity].lower()
                         for entity in self.knowledge_graph.entities]
+
+        self.entity_texts_inline = " [SEP] " + " [SEP] ".join(entity_texts)
+        tokenized_entity_texts_inline = utterance_tokenizer.tokenize(self.entity_texts_inline)
+        self.tokenized_entity_texts_inline = [Token(text=t.text, lemma=t.lemma_) for t in tokenized_entity_texts_inline]
+
         entity_tokens = entity_tokenizer.batch_tokenize(entity_texts)
         self.entity_tokens = [[Token(text=t.text, lemma=t.lemma_) for t in et] for et in entity_tokens]
 

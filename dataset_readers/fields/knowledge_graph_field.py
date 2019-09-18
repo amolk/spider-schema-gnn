@@ -23,7 +23,8 @@ class SpiderKnowledgeGraphField(KnowledgeGraphField):
                  entity_tokens: List[List[Token]] = None,
                  linking_features: List[List[List[float]]] = None,
                  include_in_vocab: bool = True,
-                 max_table_tokens: int = None) -> None:
+                 max_table_tokens: int = None,
+                 tokenized_entity_texts_inline: List[Token] = None) -> None:
         feature_extractors = feature_extractors if feature_extractors is not None else [
                 'number_token_match',
                 'exact_token_match',
@@ -35,7 +36,7 @@ class SpiderKnowledgeGraphField(KnowledgeGraphField):
                 'span_lemma_overlap_fraction',
                 ]
 
-        super().__init__(knowledge_graph, utterance_tokens, token_indexers,
+        super().__init__(knowledge_graph, utterance_tokens + tokenized_entity_texts_inline, token_indexers,
                          tokenizer=tokenizer, feature_extractors=feature_extractors, entity_tokens=entity_tokens,
                          linking_features=linking_features, include_in_vocab=include_in_vocab,
                          max_table_tokens=max_table_tokens)
