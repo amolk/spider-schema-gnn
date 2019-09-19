@@ -1,3 +1,4 @@
+import pdb
 import re
 from collections import Set, defaultdict
 from typing import Dict, Tuple, List
@@ -24,7 +25,7 @@ STOP_WORDS = {"", "", "all", "being", "-", "over", "through", "yourselves", "its
               "is", "am", "it", "doesn", "an", "as", "itself", "at", "have", "in", "any", "if", "!",
               "again", "'ll", "no", "that", "when", "same", "how", "other", "which", "you", "many", "shan",
               "'t", "'s", "our", "after", "most", "'d", "such", "'m", "why", "a", "off", "i", "yours", "so",
-              "the", "having", "once"}
+              "the", "having", "once", "id", "is"}
 
 
 class SpiderDBContext:
@@ -40,7 +41,7 @@ class SpiderDBContext:
         self.db_id = db_id
         self.utterance = utterance
 
-        tokenized_utterance = utterance_tokenizer.tokenize(utterance.lower())
+        tokenized_utterance = utterance_tokenizer.tokenize(utterance)
         self.tokenized_utterance = [Token(text=t.text, lemma=t.lemma_) for t in tokenized_utterance]
 
         if db_id not in SpiderDBContext.schemas:
@@ -51,6 +52,12 @@ class SpiderDBContext:
 
         entity_texts = [self.knowledge_graph.entity_text[entity].lower()
                         for entity in self.knowledge_graph.entities]
+
+        self.entity_texts_inline = " [SEP] " + " [SEP] ".join(entity_texts)
+        tokenized_entity_texts_inline = utterance_tokenizer.tokenize(self.entity_texts_inline)
+        self.tokenized_entity_texts_inline = [Token(text=t.text, lemma=t.lemma_) for t in tokenized_entity_texts_inline]
+
+        # pdb.set_trace()
         entity_tokens = entity_tokenizer.batch_tokenize(entity_texts)
         self.entity_tokens = [[Token(text=t.text, lemma=t.lemma_) for t in et] for et in entity_tokens]
 
@@ -63,6 +70,12 @@ class SpiderDBContext:
         else:
             column_type = column.column_type
         return f"column:{column_type.lower()}:{table_name.lower()}:{column.name.lower()}"
+
+    @staticmethod
+    def remove_stopwords(text):
+        parts = text.split(' ')
+        parts = [part for part in parts if part not in STOP_WORDS]
+        return ' '.join(parts)
 
     def get_db_knowledge_graph(self, db_id: str) -> KnowledgeGraph:
         entities: Set[str] = set()
@@ -93,14 +106,14 @@ class SpiderDBContext:
         for table in tables:
             table_key = f"table:{table.name.lower()}"
             entities.add(table_key)
-            entity_text[table_key] = table.text
+            entity_text[table_key] = self.remove_stopwords(table.text)
 
             for column in db_schema[table.name].columns:
                 entity_key = self.entity_key_for_column(table.name, column)
                 entities.add(entity_key)
                 neighbors[entity_key].add(table_key)
                 neighbors[table_key].add(entity_key)
-                entity_text[entity_key] = column.text
+                entity_text[entity_key] = self.remove_stopwords(column.text)
 
         for string_entity, column_keys in string_entities:
             entities.add(string_entity)
