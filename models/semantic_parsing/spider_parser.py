@@ -312,9 +312,7 @@ class SpiderParser(Model):
         # if linking_scores.shape[-1] == feature_scores.shape[-1] + 2:
         # linking_scores = linking_scores[:, :, 1:-1]
 
-        if linking_scores.shape != feature_scores.shape:
-          pdb.set_trace()
-        linking_scores = linking_scores + feature_scores
+        linking_scores = self.normalize(linking_scores) + self.normalize(feature_scores)
 
         # (batch_size, num_question_tokens, num_entities)
         linking_probabilities = self._get_linking_probabilities(worlds, linking_scores.transpose(1, 2),
@@ -430,6 +428,10 @@ class SpiderParser(Model):
                                           action_entity_mapping=[w.get_action_entity_mapping() for w in worlds])
 
         return initial_state
+
+    @staticmethod
+    def normalize(tensor):
+      return (tensor - tensor.mean()) / tensor.std()
 
     @staticmethod
     def _get_neighbor_indices(worlds: List[SpiderWorld],
