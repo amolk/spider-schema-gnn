@@ -142,7 +142,7 @@ class SpiderDatasetReader(DatasetReader):
                          db_id: str,
                          sql: List[str] = None):
         fields: Dict[str, Field] = {}
-        utterance = self.remove_utterance_stopwords(utterance.lower())
+        # utterance = self.remove_utterance_stopwords(utterance.lower())
         print("Utterance: ", utterance)
         db_context = SpiderDBContext(db_id, utterance, utterance_tokenizer=self._utterance_tokenizer,
                                      entity_tokenizer=self._entity_tokenizer,
