@@ -10,14 +10,7 @@ local dataset_path = "/home/amol/datasets/spider/";
     "dataset_path": dataset_path + "database",
     "lazy": false,
     "keep_if_unparsable": false,
-    "loading_limit": -1,
-    "question_token_indexers": {
-      "tokens": {
-        "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased",
-        "do_lowercase": true
-      }
-    }
+    "loading_limit": -1
   },
   "validation_dataset_reader": {
     "type": "spider",
@@ -27,35 +20,35 @@ local dataset_path = "/home/amol/datasets/spider/";
     "keep_if_unparsable": true,
     "loading_limit": -1
   },
-  "train_data_path": dataset_path + "train_spider.json",
-  "validation_data_path": dataset_path + "dev.json",
+  "train_data_path": dataset_path + "train_spider_overfit.json",
+  "validation_data_path": dataset_path + "train_spider_overfit.json",
   "model": {
     "type": "spider",
     "dataset_path": dataset_path,
     "parse_sql_on_decoding": true,
     "gnn": true,
     "gnn_timesteps": 2,
-    "decoder_self_attend": true,
-    "decoder_use_graph_entities": true,
-    "use_neighbor_similarity_for_linking": true,
+    "decoder_self_attend": false,
+    "decoder_use_graph_entities": false,
+    "use_neighbor_similarity_for_linking": false,
     "question_embedder": {
-      "allow_unmatched_keys": true,
       "tokens": {
-        "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased"
+        "type": "embedding",
+        "embedding_dim": 200,
+        "trainable": true
       }
     },
-    "action_embedding_dim": 768,
+    "action_embedding_dim": 200,
     "encoder": {
       "type": "lstm",
-      "input_size": 1536,
-      "hidden_size": 768,
+      "input_size": 400,
+      "hidden_size": 200,
       "bidirectional": true,
       "num_layers": 1
     },
     "entity_encoder": {
       "type": "boe",
-      "embedding_dim": 768,
+      "embedding_dim": 200,
       "averaged": true
     },
     "decoder_beam_search": {
@@ -69,7 +62,7 @@ local dataset_path = "/home/amol/datasets/spider/";
   },
   "iterator": {
     "type": "basic",
-    "batch_size" : 15
+    "batch_size" : 1
   },
   "validation_iterator": {
     "type": "basic",
@@ -78,7 +71,7 @@ local dataset_path = "/home/amol/datasets/spider/";
   "trainer": {
     "num_epochs": 100,
     "cuda_device": -1,
-    "patience": 20,
+    "patience": 100,
     "validation_metric": "+sql_match",
     "optimizer": {
       "type": "adam",

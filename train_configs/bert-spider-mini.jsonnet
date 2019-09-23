@@ -27,8 +27,8 @@ local dataset_path = "/home/amol/datasets/spider/";
     "keep_if_unparsable": true,
     "loading_limit": -1
   },
-  "train_data_path": dataset_path + "train_spider.json",
-  "validation_data_path": dataset_path + "dev.json",
+  "train_data_path": dataset_path + "train_spider_overfit.json",
+  "validation_data_path": dataset_path + "train_spider_overfit.json",
   "model": {
     "type": "spider",
     "dataset_path": dataset_path,
@@ -69,7 +69,7 @@ local dataset_path = "/home/amol/datasets/spider/";
   },
   "iterator": {
     "type": "basic",
-    "batch_size" : 15
+    "batch_size" : 1
   },
   "validation_iterator": {
     "type": "basic",

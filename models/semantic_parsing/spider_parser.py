@@ -350,9 +350,6 @@ class SpiderParser(Model):
 
         embedded_utterance = embedded_utterance[:, utterance['tokens-offsets'].squeeze(0), :]
 
-        if link_embedding.shape[1] != embedded_utterance.shape[1]:
-          pdb.set_trace()
-
         encoder_input = torch.cat([link_embedding, embedded_utterance], 2)
 
         # (batch_size, utterance_length, encoder_output_dim)

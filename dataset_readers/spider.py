@@ -11,6 +11,7 @@ from allennlp.data.fields import TextField, ProductionRuleField, ListField, Inde
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from allennlp.data.tokenizers import WordTokenizer
 from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter, BertBasicWordSplitter
+from allennlp.data.vocabulary import Vocabulary
 from overrides import overrides
 from spacy.symbols import ORTH, LEMMA
 
@@ -20,22 +21,6 @@ from semparse.contexts.spider_db_context import SpiderDBContext
 from semparse.worlds.spider_world import SpiderWorld
 
 logger = logging.getLogger(__name__)
-
-# == stop words that will be removed from utterance
-STOP_WORDS = {"", "", "all", "being", "-", "over", "through", "yourselves", "its", "before",
-              "hadn", "with", "had", ",", "should", "to", "only", "under", "ours", "has", "ought", "do",
-              "them", "his", "than", "very", "cannot", "they", "not", "during", "yourself", "him",
-              "nor", "did", "didn", "'ve", "this", "she", "each", "where", "because", "doing", "some", "we", "are",
-              "further", "ourselves", "out", "what", "for", "weren", "does", "above", "mustn", "?",
-              "be", "hasn", "were", "here", "shouldn", "let", "hers", "both", "about", "couldn",
-              "of", "could", "against", "isn", "or", "own", "into", "while", "whom", "down", "wasn", "your",
-              "her", "their", "aren", "there", "been", ".", "few", "too", "wouldn", "themselves",
-              ":", "was", "until", "himself", "on", "but", "don", "herself", "haven", "those", "he",
-              "me", "myself", "these", "up", ";", "below", "'re", "can", "theirs", "my", "would", "then",
-              "is", "am", "it", "doesn", "an", "as", "itself", "at", "have", "any", "if", "!",
-              "again", "'ll", "no", "that", "same", "how", "other", "which", "you", "shan",
-              "'t", "'s", "our", "'d", "such", "'m", "why", "a", "off", "i", "yours", "so",
-              "the", "having", "once", "id", "is", "show"}
 
 @DatasetReader.register("spider")
 class SpiderDatasetReader(DatasetReader):
@@ -142,8 +127,6 @@ class SpiderDatasetReader(DatasetReader):
                          db_id: str,
                          sql: List[str] = None):
         fields: Dict[str, Field] = {}
-        # utterance = self.remove_utterance_stopwords(utterance.lower())
-        print("Utterance: ", utterance)
         db_context = SpiderDBContext(db_id, utterance, utterance_tokenizer=self._utterance_tokenizer,
                                      entity_tokenizer=self._entity_tokenizer,
                                      tables_file=self._tables_file, dataset_path=self._dataset_path)
@@ -153,10 +136,14 @@ class SpiderDatasetReader(DatasetReader):
                                                 entity_tokens=db_context.entity_tokens,
                                                 include_in_vocab=False,  # TODO: self._use_table_for_vocab,
                                                 max_table_tokens=None)   # self._max_table_tokens)
-        # pdb.set_trace()
         world = SpiderWorld(db_context, query=sql)
         fields["utterance"] = TextField(db_context.tokenized_utterance, self._utterance_token_indexers)
-        fields["utterance_with_entity_texts_inline"] = TextField(db_context.tokenized_utterance + db_context.tokenized_entity_texts_inline, self._utterance_token_indexers)
+        if len(db_context.tokenized_utterance) + len(db_context.tokenized_entity_texts_inline) >= 512:
+            return None
+
+        inline = TextField(db_context.tokenized_utterance + db_context.tokenized_entity_texts_inline, self._utterance_token_indexers)
+        inline.index(Vocabulary())
+        fields["utterance_with_entity_texts_inline"] = MetadataField(inline.__dict__['_indexed_tokens'])
 
         action_sequence, all_actions = world.get_action_sequence_and_all_actions()
 
@@ -193,10 +180,4 @@ class SpiderDatasetReader(DatasetReader):
         fields["world"] = MetadataField(world)
         fields["schema"] = table_field
         return Instance(fields)
-
-    @staticmethod
-    def remove_utterance_stopwords(text):
-        parts = text.split(' ')
-        parts = [part for part in parts if part not in STOP_WORDS]
-        return ' '.join(parts)
 
