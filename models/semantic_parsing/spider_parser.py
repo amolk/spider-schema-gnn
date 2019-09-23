@@ -219,11 +219,7 @@ class SpiderParser(Model):
             return outputs
 
     def _extract_schema_embedding(self, embedded_utterance_inline, utterance_with_entity_texts_inline_metadata):
-      embedded_utterance_inline = embedded_utterance_inline.squeeze(dim=0)
-
-      pdb.set_trace()
-
-      token_type_ids = utterance_with_entity_texts_inline_metadata[0]['tokens-type-ids']
+      token_type_ids = utterance_with_entity_texts_inline_metadata['tokens-type-ids']
       schema_item_count = token_type_ids[-1]
       embeddings = [[] for i in range(schema_item_count)]
 
@@ -263,7 +259,12 @@ class SpiderParser(Model):
         embedded_utterance = embedded_utterance_with_entity_texts_inline[:,0:num_question_tokens,:]
         utterance_mask = util.get_text_field_mask(utterance).float()
 
-        embedded_schema = self._extract_schema_embedding(embedded_utterance_with_entity_texts_inline, utterance_with_entity_texts_inline_metadata)
+        pdb.set_trace()
+        embedded_schema = [self._extract_schema_embedding(embedded_utterance_with_entity_texts_inline[i],
+                                                          utterance_with_entity_texts_inline_metadata[i])
+                          for i in range(embedded_utterance_with_entity_texts_inline.shape[0])]
+
+        embedded_schema = torch.stack(embedded_schema)
         mask_shape = embedded_schema.shape[0:-1]
         schema_mask = torch.ones(mask_shape)
         batch_size, num_entities, num_entity_tokens, _ = embedded_schema.size()
