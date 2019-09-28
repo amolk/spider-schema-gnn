@@ -1,3 +1,6 @@
 Pipfile
 cache/
 experiments/
+datasets/
+__pycache__
+.DS_Store
