@@ -140,11 +140,7 @@ class SpiderDatasetReader(DatasetReader):
         fields["utterance"] = TextField(db_context.tokenized_utterance, self._utterance_token_indexers)
         if len(db_context.tokenized_utterance) + len(db_context.tokenized_entity_texts_inline) >= 512:
             return None
-
-        inline = TextField(db_context.tokenized_utterance + db_context.tokenized_entity_texts_inline, self._utterance_token_indexers)
-        inline.index(Vocabulary())
-        fields["utterance_with_entity_texts_inline"] = inline
-        fields["utterance_with_entity_texts_inline_metadata"] = MetadataField(inline.__dict__['_indexed_tokens'])
+        fields["extended_utterance"] = TextField(db_context.tokenized_utterance + db_context.tokenized_entity_texts_inline, self._utterance_token_indexers)
 
         action_sequence, all_actions = world.get_action_sequence_and_all_actions()
 

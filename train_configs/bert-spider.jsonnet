@@ -10,7 +10,7 @@ local dataset_path = "/home/amol/datasets/spider/";
     "dataset_path": dataset_path + "database",
     "lazy": false,
     "keep_if_unparsable": false,
-    "loading_limit": -1,
+    "loading_limit": 10,
     "question_token_indexers": {
       "tokens": {
         "type": "bert-pretrained",
@@ -25,7 +25,14 @@ local dataset_path = "/home/amol/datasets/spider/";
     "dataset_path": dataset_path + "database",
     "lazy": false,
     "keep_if_unparsable": true,
-    "loading_limit": -1
+    "loading_limit": 10,
+    "question_token_indexers": {
+      "tokens": {
+        "type": "bert-pretrained",
+        "pretrained_model": "bert-base-uncased",
+        "do_lowercase": true
+      }
+    }
   },
   "train_data_path": dataset_path + "train_spider.json",
   "validation_data_path": dataset_path + "dev.json",
@@ -42,7 +49,8 @@ local dataset_path = "/home/amol/datasets/spider/";
       "allow_unmatched_keys": true,
       "tokens": {
         "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased"
+        "pretrained_model": "bert-base-uncased",
+        "requires_grad": false
       }
     },
     "action_embedding_dim": 768,
