@@ -253,6 +253,7 @@ class SpiderParser(Model):
                            worlds: List[SpiderWorld],
                            schema: Dict[str, torch.LongTensor],
                            actions: List[List[ProductionRule]]) -> GrammarBasedState:
+        device = utterance['tokens'].device
         extended_utterance_embeddings = self._question_embedder(extended_utterance)
 
         utterance_mask = util.get_text_field_mask(utterance).float()
@@ -264,10 +265,10 @@ class SpiderParser(Model):
         max_entity_tokens = max([e.shape[1] for e in embedded_schema])
         embedded_schema = [torch.nn.functional.pad(input=e, pad=(0, 0, 0, max_entity_tokens-e.shape[1], 0, 0)) for e in embedded_schema]
         embedded_schema = rnn_utils.pad_sequence(embedded_schema)
-        embedded_schema = embedded_schema.transpose(0, 1).contiguous()
+        embedded_schema = embedded_schema.transpose(0, 1).contiguous().to(device)
 
         mask_shape = embedded_schema.shape[0:-1]
-        schema_mask = torch.ones(mask_shape)
+        schema_mask = torch.ones(mask_shape).to(device)
         batch_size, num_entities, num_entity_tokens, embedding_dim = embedded_schema.size()
         assert embedding_dim == self._embedding_dim
         assert num_entities == max([len(world.db_context.knowledge_graph.entities) for world in worlds])
