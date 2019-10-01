@@ -219,44 +219,52 @@ class SpiderParser(Model):
             return outputs
 
     def _extract_schema_embedding(self, extended_utterance_embeddings, extended_utterance_token_type_ids):
-      schema_item_count = extended_utterance_token_type_ids.max().item()
-      assert len(extended_utterance_token_type_ids) == extended_utterance_embeddings.shape[0]
+        schema_item_count = extended_utterance_token_type_ids.max().item()
+        assert len(extended_utterance_token_type_ids) == extended_utterance_embeddings.shape[0]
 
-      embeddings = [[] for i in range(schema_item_count)]
+        embeddings = [[] for i in range(schema_item_count)]
 
-      # gather embeddings for each entity
-      for i in range(len(extended_utterance_token_type_ids)):
-        token_type_id = extended_utterance_token_type_ids[i]
-        if token_type_id == 0:
-          continue
-        embeddings[token_type_id-1].append(extended_utterance_embeddings[i])
+        # gather embeddings for each entity
+        for i in range(len(extended_utterance_token_type_ids)):
+            token_type_id = extended_utterance_token_type_ids[i]
 
-      # last item for each entity corresponds to a [SEP] token
-      # get rid of it
-      embeddings = [item_embeddings[:-1] for item_embeddings in embeddings]
+            # skip utterance tokens
+            if token_type_id == 0:
+                continue
 
-      # make all schema items have same number of embeddings by padding 0 embedding
-      max_len = max([len(a) for a in embeddings])
-      pad_embedding = torch.zeros_like(extended_utterance_embeddings[0])
-      for i in range(schema_item_count):
-        pad = max_len - len(embeddings[i])
-        for _ in range(pad):
-          embeddings[i].append(pad_embedding)
-        embeddings[i] = torch.stack(embeddings[i])
+            # skip trailing [SEP]
+            if token_type_id > schema_item_count:
+                continue
 
-      schema_embedding = torch.stack(embeddings)
-      return schema_embedding
+            embeddings[token_type_id-1].append(extended_utterance_embeddings[i])
 
-    def _get_initial_state(self,
+        # last item for each entity corresponds to a [SEP] token
+        # get rid of it
+        embeddings = [item_embeddings[:-1] for item_embeddings in embeddings]
+
+        # make all schema items have same number of embeddings by padding 0 embedding
+        max_len = max([len(a) for a in embeddings])
+        pad_embedding = torch.zeros_like(extended_utterance_embeddings[0])
+        for i in range(schema_item_count):
+            pad = max_len - len(embeddings[i])
+            for _ in range(pad):
+                embeddings[i].append(pad_embedding)
+            embeddings[i] = torch.stack(embeddings[i])
+
+        schema_embedding = torch.stack(embeddings)
+        return schema_embedding
+
+    def _extract_embeddings(self,
                            utterance: Dict[str, torch.LongTensor],
                            extended_utterance: Dict[str, torch.LongTensor],
-                           worlds: List[SpiderWorld],
-                           schema: Dict[str, torch.LongTensor],
-                           actions: List[List[ProductionRule]]) -> GrammarBasedState:
+                           worlds: List[SpiderWorld]) -> Tuple[torch.Tensor, torch.Tensor]:
         device = utterance['tokens'].device
-        extended_utterance_embeddings = self._question_embedder(extended_utterance)
+        batch_size = utterance['tokens'].shape[0]
 
-        utterance_mask = util.get_text_field_mask(utterance).float()
+        extended_utterance_embeddings = self._question_embedder(extended_utterance)
+        embedded_utterance = torch.stack([extended_utterance_embeddings[i,utterance['tokens-offsets'][i],:] for i in range(batch_size)])
+        _, num_question_tokens, _ = embedded_utterance.shape
+        assert embedded_utterance.shape == (batch_size, num_question_tokens, self._embedding_dim)
 
         embedded_schema = [self._extract_schema_embedding(extended_utterance_embeddings[i],
                                                           extended_utterance['tokens-type-ids'][i])
@@ -267,12 +275,26 @@ class SpiderParser(Model):
         embedded_schema = rnn_utils.pad_sequence(embedded_schema)
         embedded_schema = embedded_schema.transpose(0, 1).contiguous().to(device)
 
-        mask_shape = embedded_schema.shape[0:-1]
-        schema_mask = torch.ones(mask_shape).to(device)
         batch_size, num_entities, num_entity_tokens, embedding_dim = embedded_schema.size()
         assert embedding_dim == self._embedding_dim
         assert num_entities == max([len(world.db_context.knowledge_graph.entities) for world in worlds])
         assert batch_size == len(worlds)
+
+        return embedded_utterance, embedded_schema
+
+    def _get_initial_state(self,
+                           utterance: Dict[str, torch.LongTensor],
+                           extended_utterance: Dict[str, torch.LongTensor],
+                           worlds: List[SpiderWorld],
+                           schema: Dict[str, torch.LongTensor],
+                           actions: List[List[ProductionRule]]) -> GrammarBasedState:
+
+        device = utterance['tokens'].device
+        embedded_utterance, embedded_schema = self._extract_embeddings(utterance, extended_utterance, worlds)
+        batch_size, num_entities, num_entity_tokens, embedding_dim = embedded_schema.size()
+        _, num_question_tokens, _ = embedded_utterance.shape
+        utterance_mask = util.get_text_field_mask(utterance).float().to(device)
+        schema_mask = torch.ones(embedded_schema.shape[0:-1]).to(device)
 
         # entity_types: tensor with shape (batch_size, num_entities), where each entry is the
         # entity's type id.
@@ -284,12 +306,6 @@ class SpiderParser(Model):
 
         entity_type_embeddings = self._entity_type_encoder_embedding(entity_types)
         assert entity_type_embeddings.shape == (batch_size, num_entities, self._embedding_dim)
-
-        num_question_tokens = utterance['tokens'].size(1)
-
-        embedded_utterance = torch.stack([extended_utterance_embeddings[i,utterance['tokens-offsets'][i],:] for i in range(batch_size)])
-        _, num_question_tokens, _ = embedded_utterance.shape
-        assert embedded_utterance.shape == (batch_size, num_question_tokens, self._embedding_dim)
 
         # Compute entity and question word similarity.  We tried using cosine distance here, but
         # because this similarity is the main mechanism that the model can use to push apart logit

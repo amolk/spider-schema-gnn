@@ -57,7 +57,6 @@ class SpiderDBContext:
         tokenized_entity_texts_inline = utterance_tokenizer.tokenize(self.entity_texts_inline)
         self.tokenized_entity_texts_inline = [Token(text=t.text, lemma=t.lemma_) for t in tokenized_entity_texts_inline]
 
-        # pdb.set_trace()
         entity_tokens = entity_tokenizer.batch_tokenize(entity_texts)
         self.entity_tokens = [[Token(text=t.text, lemma=t.lemma_) for t in et] for et in entity_tokens]
 
@@ -113,7 +112,7 @@ class SpiderDBContext:
                 entities.add(entity_key)
                 neighbors[entity_key].add(table_key)
                 neighbors[table_key].add(entity_key)
-                entity_text[entity_key] = self.remove_stopwords(column.text)
+                entity_text[entity_key] = self.remove_stopwords(table.text) + '.' + self.remove_stopwords(column.text)
 
         for string_entity, column_keys in string_entities:
             entities.add(string_entity)
