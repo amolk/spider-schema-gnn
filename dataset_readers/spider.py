@@ -138,9 +138,27 @@ class SpiderDatasetReader(DatasetReader):
                                                 max_table_tokens=None)   # self._max_table_tokens)
         world = SpiderWorld(db_context, query=sql)
         fields["utterance"] = TextField(db_context.tokenized_utterance, self._utterance_token_indexers)
-        if len(db_context.tokenized_utterance) + len(db_context.tokenized_entity_texts_inline) >= 512:
+
+        # find wordpiece tokens for all utterance and entity tokens
+        # note that there could be more wordpiece tokens, and the wordpiece token count
+        # needs to stay within 512 limit
+        tokens = db_context.tokenized_utterance + db_context.tokenized_entity_texts_inline
+        indexer = self._utterance_token_indexers["tokens"]
+        wps = (
+            indexer.wordpiece_tokenizer(token.text.lower())
+            if token.text not in ['[SEP]']
+            else indexer.wordpiece_tokenizer(token.text)
+            for token in tokens
+        )
+
+        # flatten
+        wps = [item for sublist in wps for item in sublist]
+
+        # if too many tokens, don't load this example
+        if len(wps) >= 512:
             return None
-        fields["extended_utterance"] = TextField(db_context.tokenized_utterance + db_context.tokenized_entity_texts_inline, self._utterance_token_indexers)
+
+        fields["extended_utterance"] = TextField(tokens, self._utterance_token_indexers)
 
         action_sequence, all_actions = world.get_action_sequence_and_all_actions()
 
