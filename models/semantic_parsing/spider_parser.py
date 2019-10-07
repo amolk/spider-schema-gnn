@@ -112,13 +112,15 @@ class SpiderParser(Model):
         torch.nn.init.normal_(self._first_attended_output)
 
         self._num_entity_types = 9
-        self._embedding_dim = question_embedder.get_output_dim()
+        self._embedding_dim = action_embedding_dim
 
         self._entity_type_encoder_embedding = Embedding(self._num_entity_types, self._embedding_dim)
         self._entity_type_decoder_embedding = Embedding(self._num_entity_types, action_embedding_dim)
 
         self._linking_params = torch.nn.Linear(16, 1)
         torch.nn.init.uniform_(self._linking_params.weight, 0, 1)
+
+        self._embedding = torch.nn.Linear(768, self._embedding_dim)
 
         num_edge_types = 3
         self._gnn = GatedGraphConv(self._embedding_dim, gnn_timesteps, num_edge_types=num_edge_types, dropout=dropout)
@@ -262,6 +264,10 @@ class SpiderParser(Model):
         batch_size = utterance['tokens'].shape[0]
 
         extended_utterance_embeddings = self._question_embedder(extended_utterance)
+        s = extended_utterance_embeddings.shape
+        extended_utterance_embeddings = self._embedding(extended_utterance_embeddings.view(s[0] * s[1], s[2]))
+        extended_utterance_embeddings = extended_utterance_embeddings.view(s[0], s[1], -1)
+
         embedded_utterance = torch.stack([extended_utterance_embeddings[i,utterance['tokens-offsets'][i],:] for i in range(batch_size)])
         _, num_question_tokens, _ = embedded_utterance.shape
         assert embedded_utterance.shape == (batch_size, num_question_tokens, self._embedding_dim)
@@ -340,7 +346,7 @@ class SpiderParser(Model):
 
         feature_scores = self._linking_params(linking_features).squeeze(3)
 
-        linking_scores = self.normalize(linking_scores) + self.normalize(feature_scores)
+        linking_scores = linking_scores + feature_scores
 
         # (batch_size, num_question_tokens, num_entities)
         linking_probabilities = self._get_linking_probabilities(worlds, linking_scores.transpose(1, 2),
