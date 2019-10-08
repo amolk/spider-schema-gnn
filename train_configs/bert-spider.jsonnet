@@ -77,7 +77,7 @@ local dataset_path = "./datasets/spider/";
   },
   "iterator": {
     "type": "basic",
-    "batch_size" : 15
+    "batch_size" : 13
   },
   "validation_iterator": {
     "type": "basic",
