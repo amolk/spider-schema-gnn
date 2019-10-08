@@ -1,4 +1,4 @@
-local dataset_path = "./datasets/spider/";
+local dataset_path = "/home/amol/datasets/spider/";
 
 {
   "random_seed": 5,
@@ -14,7 +14,7 @@ local dataset_path = "./datasets/spider/";
     "question_token_indexers": {
       "tokens": {
         "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased",
+        "pretrained_model": "bert-large-uncased",
         "do_lowercase": true
       }
     }
@@ -29,7 +29,7 @@ local dataset_path = "./datasets/spider/";
     "question_token_indexers": {
       "tokens": {
         "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased",
+        "pretrained_model": "bert-large-uncased",
         "do_lowercase": true
       }
     }
@@ -49,21 +49,21 @@ local dataset_path = "./datasets/spider/";
       "allow_unmatched_keys": true,
       "tokens": {
         "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased",
+        "pretrained_model": "bert-large-uncased",
         "requires_grad": true
       }
     },
-    "action_embedding_dim": 768,
+    "action_embedding_dim": 1024,
     "encoder": {
       "type": "lstm",
-      "input_size": 1536,
+      "input_size": 2048,
       "hidden_size": 200,
       "bidirectional": true,
       "num_layers": 1
     },
     "entity_encoder": {
       "type": "boe",
-      "embedding_dim": 768,
+      "embedding_dim": 1024,
       "averaged": true
     },
     "decoder_beam_search": {
@@ -77,7 +77,7 @@ local dataset_path = "./datasets/spider/";
   },
   "iterator": {
     "type": "basic",
-    "batch_size" : 13
+    "batch_size" : 10
   },
   "validation_iterator": {
     "type": "basic",
