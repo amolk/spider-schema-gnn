@@ -1,4 +1,4 @@
-local dataset_path = "/home/amol/datasets/spider/";
+local dataset_path = "./datasets/spider/";
 
 {
   "random_seed": 5,
@@ -10,7 +10,7 @@ local dataset_path = "/home/amol/datasets/spider/";
     "dataset_path": dataset_path + "database",
     "lazy": false,
     "keep_if_unparsable": false,
-    "loading_limit": 10,
+    "loading_limit": -1,
     "question_token_indexers": {
       "tokens": {
         "type": "bert-pretrained",
@@ -25,7 +25,7 @@ local dataset_path = "/home/amol/datasets/spider/";
     "dataset_path": dataset_path + "database",
     "lazy": false,
     "keep_if_unparsable": true,
-    "loading_limit": 10,
+    "loading_limit": -1,
     "question_token_indexers": {
       "tokens": {
         "type": "bert-pretrained",
@@ -91,7 +91,10 @@ local dataset_path = "/home/amol/datasets/spider/";
     "optimizer": {
       "type": "adam",
       "lr": 0.001,
-      "weight_decay": 5e-4
+      "weight_decay": 5e-4,
+      "parameter_groups": [
+        [["bert_model"], {"lr": 1e-6, "weight_decay": 0}],
+      ]
     },
     "num_serialized_models_to_keep": 2
   }
