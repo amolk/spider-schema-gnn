@@ -45,7 +45,7 @@ local dataset_path = "/home/amol/datasets/spider/";
     "decoder_self_attend": true,
     "decoder_use_graph_entities": true,
     "use_neighbor_similarity_for_linking": true,
-    "question_embedder": {
+    "question_bert_embedder": {
       "allow_unmatched_keys": true,
       "tokens": {
         "type": "bert-pretrained",
@@ -53,17 +53,25 @@ local dataset_path = "/home/amol/datasets/spider/";
         "requires_grad": true
       }
     },
-    "action_embedding_dim": 768,
+    "question_embedder": {
+      "allow_unmatched_keys": true,
+      "tokens": {
+        "type": "embedding",
+        "embedding_dim": 200,
+        "trainable": true
+      }
+    },
+    "action_embedding_dim": 200,
     "encoder": {
       "type": "lstm",
-      "input_size": 1536,
+      "input_size": 400,
       "hidden_size": 200,
       "bidirectional": true,
       "num_layers": 1
     },
     "entity_encoder": {
       "type": "boe",
-      "embedding_dim": 768,
+      "embedding_dim": 200,
       "averaged": true
     },
     "decoder_beam_search": {
@@ -91,7 +99,10 @@ local dataset_path = "/home/amol/datasets/spider/";
     "optimizer": {
       "type": "adam",
       "lr": 0.001,
-      "weight_decay": 5e-4
+      "weight_decay": 5e-4,
+      "parameter_groups": [
+        [["bert_model"], {"lr": 1e-6, "weight_decay": 0}],
+      ]
     },
     "num_serialized_models_to_keep": 2
   }

@@ -45,6 +45,7 @@ class SpiderParser(Model):
                  entity_encoder: Seq2VecEncoder,
                  decoder_beam_search: BeamSearch,
                  question_embedder: TextFieldEmbedder,
+                 question_bert_embedder: TextFieldEmbedder,
                  input_attention: Attention,
                  past_attention: Attention,
                  max_decoding_steps: int,
@@ -72,7 +73,8 @@ class SpiderParser(Model):
         else:
             self._dropout = lambda x: x
         self._rule_namespace = rule_namespace
-        self._question_embedder = question_embedder
+        self._question_embedder = None # instantiate later when bert vocab size is known
+        self._question_bert_embedder = question_bert_embedder
         self._add_action_bias = add_action_bias
         self._scoring_dev_params = scoring_dev_params or {}
         self.parse_sql_on_decoding = parse_sql_on_decoding
@@ -112,7 +114,7 @@ class SpiderParser(Model):
         torch.nn.init.normal_(self._first_attended_output)
 
         self._num_entity_types = 9
-        self._embedding_dim = action_embedding_dim
+        self._embedding_dim = question_embedder.get_output_dim()
 
         self._entity_type_encoder_embedding = Embedding(self._num_entity_types, self._embedding_dim)
         self._entity_type_decoder_embedding = Embedding(self._num_entity_types, action_embedding_dim)
@@ -120,7 +122,8 @@ class SpiderParser(Model):
         self._linking_params = torch.nn.Linear(16, 1)
         torch.nn.init.uniform_(self._linking_params.weight, 0, 1)
 
-        self._embedding = torch.nn.Linear(768, self._embedding_dim)
+        self._bert_embedding = torch.nn.Linear(question_bert_embedder.get_output_dim(), self._embedding_dim)
+        self._mix_embedding = torch.nn.Linear(self._embedding_dim * 2, self._embedding_dim)
 
         num_edge_types = 3
         self._gnn = GatedGraphConv(self._embedding_dim, gnn_timesteps, num_edge_types=num_edge_types, dropout=dropout)
@@ -171,6 +174,9 @@ class SpiderParser(Model):
 
         batch_size = len(world)
         device = utterance['tokens'].device
+
+        if self._question_embedder is None:
+          self._question_embedder = Embedding(self.vocab.get_vocab_size('bert'), self._action_embedding_dim).to(device)
 
         initial_state = self._get_initial_state(utterance, extended_utterance, world, schema, valid_actions)
 
@@ -263,10 +269,20 @@ class SpiderParser(Model):
         device = utterance['tokens'].device
         batch_size = utterance['tokens'].shape[0]
 
-        extended_utterance_embeddings = self._question_embedder(extended_utterance)
-        s = extended_utterance_embeddings.shape
-        extended_utterance_embeddings = self._embedding(extended_utterance_embeddings.view(s[0] * s[1], s[2]))
-        extended_utterance_embeddings = extended_utterance_embeddings.view(s[0], s[1], -1)
+        extended_utterance_embeddings_bert = self._question_bert_embedder(extended_utterance)
+        batch, max_tokens, bert_size = extended_utterance_embeddings_bert.shape
+        extended_utterance_embeddings_bert = extended_utterance_embeddings_bert.view(-1, bert_size)   # batch * max_tokens, 768
+        extended_utterance_embeddings_bert = self._bert_embedding(extended_utterance_embeddings_bert) # batch * max_tokens, 200
+        extended_utterance_embeddings_bert = extended_utterance_embeddings_bert.float().to(device)
+
+        extended_utterance_embeddings_emb = self._question_embedder(extended_utterance['tokens'])
+        extended_utterance_embeddings_emb = extended_utterance_embeddings_emb.view(-1, extended_utterance_embeddings_emb.shape[-1]) # batch * max_tokens, 200
+        extended_utterance_embeddings_emb = extended_utterance_embeddings_emb.float().to(device)
+
+        extended_utterance_embeddings = torch.cat((extended_utterance_embeddings_bert, extended_utterance_embeddings_emb), 1) # batch * max_tokens, 400
+        extended_utterance_embeddings = self._mix_embedding(extended_utterance_embeddings) # batch * max_tokens, 200
+
+        extended_utterance_embeddings = extended_utterance_embeddings.view(batch, max_tokens, -1) # batch, max_tokens, 200
 
         embedded_utterance = torch.stack([extended_utterance_embeddings[i,utterance['tokens-offsets'][i],:] for i in range(batch_size)])
         _, num_question_tokens, _ = embedded_utterance.shape
