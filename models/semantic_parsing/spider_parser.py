@@ -112,7 +112,7 @@ class SpiderParser(Model):
         torch.nn.init.normal_(self._first_attended_output)
 
         self._num_entity_types = 9
-        self._embedding_dim = question_embedder.get_output_dim()
+        self._embedding_dim = question_embedder.get_output_dim() * 2
 
         self._entity_type_encoder_embedding = Embedding(self._num_entity_types, self._embedding_dim)
         self._entity_type_decoder_embedding = Embedding(self._num_entity_types, action_embedding_dim)
@@ -261,7 +261,9 @@ class SpiderParser(Model):
         device = utterance['tokens'].device
         batch_size = utterance['tokens'].shape[0]
 
-        extended_utterance_embeddings = self._question_embedder(extended_utterance)
+        all_layer_output, _ = self._question_embedder.token_embedder_tokens.bert_model(input_ids=extended_utterance['tokens'])
+        extended_utterance_embeddings = torch.cat((all_layer_output[-1], all_layer_output[-2]), -1)
+
         embedded_utterance = torch.stack([extended_utterance_embeddings[i,utterance['tokens-offsets'][i],:] for i in range(batch_size)])
         _, num_question_tokens, _ = embedded_utterance.shape
         assert embedded_utterance.shape == (batch_size, num_question_tokens, self._embedding_dim)

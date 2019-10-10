@@ -53,17 +53,17 @@ local dataset_path = "./datasets/spider/";
         "requires_grad": true
       }
     },
-    "action_embedding_dim": 768,
+    "action_embedding_dim": 1536,
     "encoder": {
       "type": "lstm",
-      "input_size": 1536,
+      "input_size": 3072,
       "hidden_size": 200,
       "bidirectional": true,
       "num_layers": 1
     },
     "entity_encoder": {
       "type": "boe",
-      "embedding_dim": 768,
+      "embedding_dim": 1536,
       "averaged": true
     },
     "decoder_beam_search": {
