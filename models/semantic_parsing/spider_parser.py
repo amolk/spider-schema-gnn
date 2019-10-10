@@ -262,7 +262,7 @@ class SpiderParser(Model):
         batch_size = utterance['tokens'].shape[0]
 
         all_layer_output, _ = self._question_embedder.token_embedder_tokens.bert_model(input_ids=extended_utterance['tokens'])
-        extended_utterance_embeddings = torch.cat((all_layer_output[-1], all_layer_output[-2]), -1)
+        extended_utterance_embeddings = torch.cat((all_layer_output[-1], all_layer_output[-2]), -1).to(device)
 
         embedded_utterance = torch.stack([extended_utterance_embeddings[i,utterance['tokens-offsets'][i],:] for i in range(batch_size)])
         _, num_question_tokens, _ = embedded_utterance.shape
