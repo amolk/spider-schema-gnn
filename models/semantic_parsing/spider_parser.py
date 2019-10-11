@@ -183,7 +183,6 @@ class SpiderParser(Model):
             decode_output = self._decoder_trainer.decode(initial_state,
                                                          self._transition_function,
                                                          (action_sequence.unsqueeze(1), action_mask.unsqueeze(1)))
-
             return {'loss': decode_output['loss']}
         else:
             loss = torch.tensor([0]).float().to(device)
