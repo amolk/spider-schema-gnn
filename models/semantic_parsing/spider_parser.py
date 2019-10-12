@@ -845,6 +845,7 @@ class SpiderParser(Model):
         batch_size = len(actions)
 
         outputs['predicted_sql_query'] = []
+        outputs['candidates'] = []
 
         action_mapping = {}
         for batch_index, batch_actions in enumerate(actions):
@@ -893,14 +894,38 @@ class SpiderParser(Model):
                     self._acc_single(sql_evaluator_match)
 
             beam_hit = False
+
+            candidates = []
+
             for pos, final_state in enumerate(best_final_states[i]):
                 action_indices = final_state.action_history[0]
                 action_strings = [action_mapping[(i, action_index)]
                                   for action_index in action_indices]
                 candidate_sql_query = action_sequence_to_sql(action_strings, add_table_names=True)
 
+                candidate_data = {}
+                candidate_data['sql_query'] = candidate_sql_query
+                candidate_data['tables_used'] = list(final_state.sql_state[0].tables_used)
+                candidate_data['columns_used'] = list(final_state.sql_state[0].columns_used)
+
                 if target_available:
                     correct = self._evaluate_func(original_gold_sql_query, candidate_sql_query, world[i].db_id)
                     if correct:
                         beam_hit = True
+                        candidate_data['target'] = 1.0
+                    else:
+                        candidate_data['target'] = 0.0
                     self._beam_hit(beam_hit)
+
+                candidates.append(candidate_data)
+
+            if not beam_hit:
+                candidate_data = {
+                  'sql_query': original_gold_sql_query,
+                  'tables_used': world[0].tables_used,
+                  'columns_used': world[0].columns_used,
+                  'target': 1.0
+                }
+                candidates.append(candidate_data)
+
+            outputs['candidates'].append(candidates)
