@@ -1,9 +1,9 @@
-torch==1.0.1.post2
+torch==1.2
 spacy==2.0.18
 allennlp==0.8.2
 dill
 torch-scatter==1.1.2
-torch-sparse==0.2.4
+torch-sparse==0.4.0
 torch-cluster==1.2.4
 torch-geometric==1.1.2
 ordered_set

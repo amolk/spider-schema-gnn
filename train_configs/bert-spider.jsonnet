@@ -1,4 +1,4 @@
-local dataset_path = "./datasets/spider/";
+local dataset_path = "/home/amol/datasets/spider/";
 
 {
   "random_seed": 5,
