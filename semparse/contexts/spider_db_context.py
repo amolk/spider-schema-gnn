@@ -1,5 +1,6 @@
 import pdb
 import re
+import copy
 from collections import Set, defaultdict
 from typing import Dict, Tuple, List
 
@@ -35,7 +36,7 @@ class SpiderDBContext:
 
     def __init__(self, db_id: str, utterance: str,
                  utterance_tokenizer: Tokenizer, entity_tokenizer: Tokenizer,
-                 tables_file: str, dataset_path: str):
+                 tables_file: str, dataset_path: str, query: List[str]):
         self.dataset_path = dataset_path
         self.tables_file = tables_file
         self.db_id = db_id
@@ -46,7 +47,33 @@ class SpiderDBContext:
 
         if db_id not in SpiderDBContext.schemas:
             SpiderDBContext.schemas = read_dataset_schema(self.tables_file)
-        self.schema = SpiderDBContext.schemas[db_id]
+
+        # find columns used in gold query
+        used_columns = defaultdict(set)
+        next_item_is_table = False
+        for item in query:
+            if '@' in item:
+                table, column = item.split('@')
+                used_columns[table].add(column)
+            # make sure at least 1 column is used for a table that is used
+            elif item.lower() == 'from' or item.lower() == 'join':
+                next_item_is_table = True
+                continue
+
+            if next_item_is_table:
+                if item in SpiderDBContext.schemas[db_id]:
+                    if len(used_columns[item]) == 0:
+                        primary_key = SpiderDBContext.schemas[db_id][item].get_primary_key()
+                        used_columns[item].add(primary_key)
+
+                next_item_is_table = False
+
+        # column pre-filtering
+        # Test 1: Only keep tables and columns used by gold query to find max possible gain due to column pre-filtering
+        self.schema = {}
+        for table in used_columns.keys():
+            self.schema[table] = copy.deepcopy(SpiderDBContext.schemas[db_id][table])
+            self.schema[table].columns = [column for column in self.schema[table].columns if column.name in used_columns[table]]
 
         self.knowledge_graph = self.get_db_knowledge_graph(db_id)
 
@@ -85,8 +112,8 @@ class SpiderDBContext:
         db_schema = self.schema
         tables = db_schema.values()
 
-        if db_id not in self.db_tables_data:
-            self.db_tables_data[db_id] = read_dataset_values(db_id, self.dataset_path, tables)
+        # Always load because we use different subsets of tables and columns
+        self.db_tables_data[db_id] = read_dataset_values(db_id, self.dataset_path, tables)
 
         tables_data = self.db_tables_data[db_id]
 

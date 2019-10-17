@@ -129,7 +129,8 @@ class SpiderDatasetReader(DatasetReader):
         fields: Dict[str, Field] = {}
         db_context = SpiderDBContext(db_id, utterance, utterance_tokenizer=self._utterance_tokenizer,
                                      entity_tokenizer=self._entity_tokenizer,
-                                     tables_file=self._tables_file, dataset_path=self._dataset_path)
+                                     tables_file=self._tables_file, dataset_path=self._dataset_path,
+                                     query=sql)
         table_field = SpiderKnowledgeGraphField(db_context.knowledge_graph,
                                                 db_context.tokenized_utterance,
                                                 token_indexers=self._utterance_token_indexers,
