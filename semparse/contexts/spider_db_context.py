@@ -41,6 +41,7 @@ class SpiderDBContext:
         self.tables_file = tables_file
         self.db_id = db_id
         self.utterance = utterance
+        self.query = query
 
         tokenized_utterance = utterance_tokenizer.tokenize(utterance)
         self.tokenized_utterance = [Token(text=t.text, lemma=t.lemma_) for t in tokenized_utterance]
@@ -68,6 +69,7 @@ class SpiderDBContext:
 
                 next_item_is_table = False
 
+        self.used_columns = used_columns
         # column pre-filtering
         # Test 1: Only keep tables and columns used by gold query to find max possible gain due to column pre-filtering
         self.schema = {}
@@ -157,7 +159,11 @@ class SpiderDBContext:
                 other_column_table, other_column_name = column.foreign_key.split(':')
 
                 # must have exactly one by design
-                other_column = [col for col in db_schema[other_column_table].columns if col.name == other_column_name][0]
+                try:
+                    other_column = [col for col in db_schema[other_column_table].columns if col.name == other_column_name][0]
+                except KeyError:
+                    # Partial schema does not include this foreign key
+                    continue
 
                 entity_key = self.entity_key_for_column(table_name, column)
                 other_entity_key = self.entity_key_for_column(other_column_table, other_column)
