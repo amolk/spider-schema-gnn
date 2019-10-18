@@ -168,7 +168,7 @@ class SpiderDBContext:
                 # must have exactly one by design
                 try:
                     other_column = [col for col in db_schema[other_column_table].columns if col.name == other_column_name][0]
-                except KeyError:
+                except (KeyError, IndexError):
                     # Partial schema does not include this foreign key
                     continue
 
