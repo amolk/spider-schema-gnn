@@ -74,8 +74,15 @@ class SpiderDBContext:
         # Test 1: Only keep tables and columns used by gold query to find max possible gain due to column pre-filtering
         self.schema = {}
         for table in used_columns.keys():
-            self.schema[table] = copy.deepcopy(SpiderDBContext.schemas[db_id][table])
-            self.schema[table].columns = [column for column in self.schema[table].columns if column.name in used_columns[table]]
+            table_data = None
+            for tn in SpiderDBContext.schemas[db_id]:
+                if tn.lower() == table:
+                    table_data = SpiderDBContext.schemas[db_id][tn]
+                    break
+
+            table_name = table_data.name
+            self.schema[table_name] = copy.deepcopy(table_data)
+            self.schema[table_name].columns = [column for column in self.schema[table_name].columns if column.name.lower() in used_columns[table]]
 
         self.knowledge_graph = self.get_db_knowledge_graph(db_id)
 
