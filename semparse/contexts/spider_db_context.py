@@ -62,10 +62,14 @@ class SpiderDBContext:
                 continue
 
             if next_item_is_table:
-                if item in SpiderDBContext.schemas[db_id]:
+                table = self.lookup_case_insensitive(item, SpiderDBContext.schemas[db_id])
+                if table is not None:
                     if len(used_columns[item]) == 0:
-                        primary_key = SpiderDBContext.schemas[db_id][item].get_primary_key()
-                        used_columns[item].add(primary_key)
+                        primary_key = table.get_primary_key()
+                        assert primary_key is not None
+                        used_columns[table.name].add(primary_key)
+                else:
+                    assert False, f"Why table {item} wasn't found in schema {SpiderDBContext.schemas[db_id]} for query {query}?"
 
                 next_item_is_table = False
 
@@ -74,12 +78,9 @@ class SpiderDBContext:
         # Test 1: Only keep tables and columns used by gold query to find max possible gain due to column pre-filtering
         self.schema = {}
         for table in used_columns.keys():
-            table_data = None
-            for tn in SpiderDBContext.schemas[db_id]:
-                if tn.lower() == table:
-                    table_data = SpiderDBContext.schemas[db_id][tn]
-                    break
-
+            table_data = self.lookup_case_insensitive(table, SpiderDBContext.schemas[db_id])
+            if not table_data:
+                continue
             table_name = table_data.name
             self.schema[table_name] = copy.deepcopy(table_data)
             self.schema[table_name].columns = [column for column in self.schema[table_name].columns if column.name.lower() in used_columns[table]]
@@ -95,6 +96,14 @@ class SpiderDBContext:
 
         entity_tokens = entity_tokenizer.batch_tokenize(entity_texts)
         self.entity_tokens = [[Token(text=t.text, lemma=t.lemma_) for t in et] for et in entity_tokens]
+
+    @staticmethod
+    def lookup_case_insensitive(lookup_key: str, lookup_dict: Dict):
+        for key in lookup_dict.keys():
+            if key.lower() == lookup_key:
+                return lookup_dict[key]
+
+        return None
 
     @staticmethod
     def entity_key_for_column(table_name: str, column: TableColumn) -> str:
