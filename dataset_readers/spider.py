@@ -127,6 +127,10 @@ class SpiderDatasetReader(DatasetReader):
                          db_id: str,
                          sql: List[str] = None):
         fields: Dict[str, Field] = {}
+
+        if not sql:
+            return None
+
         db_context = SpiderDBContext(db_id, utterance, utterance_tokenizer=self._utterance_tokenizer,
                                      entity_tokenizer=self._entity_tokenizer,
                                      tables_file=self._tables_file, dataset_path=self._dataset_path,
