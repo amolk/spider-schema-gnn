@@ -62,12 +62,16 @@ class SpiderDBContext:
                 continue
 
             if next_item_is_table:
+                if item == '(':  # subquery
+                    next_item_is_table = False
+                    continue
+
                 table = self.lookup_case_insensitive(item, SpiderDBContext.schemas[db_id])
                 if table is not None:
                     if len(used_columns[item]) == 0:
                         primary_key = table.get_primary_key()
                         assert primary_key is not None
-                        used_columns[table.name].add(primary_key)
+                        used_columns[item].add(primary_key)
                 else:
                     assert False, f"Why table {item} wasn't found in schema {SpiderDBContext.schemas[db_id]} for query {query}?"
 
