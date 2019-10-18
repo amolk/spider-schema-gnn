@@ -893,6 +893,7 @@ class SpiderParser(Model):
                 else:
                     self._acc_single(sql_evaluator_match)
 
+
             beam_hit = False
 
             candidates = []
@@ -919,13 +920,13 @@ class SpiderParser(Model):
 
                 candidates.append(candidate_data)
 
-            if not beam_hit:
-                candidate_data = {
-                  'sql_query': original_gold_sql_query,
-                  'tables_used': world[0].tables_used,
-                  'columns_used': world[0].columns_used,
-                  'target': 1.0
-                }
-                candidates.append(candidate_data)
+            # if not beam_hit:
+            #     candidate_data = {
+            #       'sql_query': original_gold_sql_query,
+            #       'tables_used': world[0].tables_used,
+            #       'columns_used': world[0].columns_used,
+            #       'target': 1.0
+            #     }
+            #     candidates.append(candidate_data)
 
             outputs['candidates'].append(candidates)

@@ -38,12 +38,13 @@ class SpiderWorld:
         self.tables_used = []
         self.columns_used = []
 
-        for item in self.query:
-            if item in entity_names:
-                if '@' in item:
-                    self.columns_used.append(item.split('@'))
-                else:
-                    self.tables_used.append(item)
+        if self.query is not None:
+            for item in self.query:
+                if item in entity_names:
+                    if '@' in item:
+                        self.columns_used.append(item.split('@'))
+                    else:
+                        self.tables_used.append(item)
 
         self.valid_actions = []
         self.valid_actions_flat = []

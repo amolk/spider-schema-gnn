@@ -18,11 +18,11 @@ class DiscriminatorDatasetGenerator(Predictor):
 
         outputs = self._model.forward_on_instance(instance)
 
-        json_output = {"instances": []}
+        json_output = {"utterance": utterance, "instances": []}
         unique_instances = {}
         for candidate in outputs['candidates']:
             discriminator_instance = candidate
-            discriminator_instance["utterance"] = utterance
+            # discriminator_instance["utterance"] = utterance
             unique_key = str(discriminator_instance['tables_used'])  + \
                          str(discriminator_instance['columns_used']) + \
                          str(discriminator_instance['target'])
@@ -32,14 +32,14 @@ class DiscriminatorDatasetGenerator(Predictor):
 
         return sanitize(json_output)
 
-    @overrides
-    def dump_line(self, outputs: JsonDict) -> str:  # pylint: disable=no-self-use
-        """
-        If you don't want your outputs in JSON-lines format
-        you can override this function to output them differently.
-        """
-        lines = []
-        for instance in outputs["instances"]:
-            lines.append(str(instance))
-            lines.append("\n")
-        return ''.join(lines)
+    # @overrides
+    # def dump_line(self, outputs: JsonDict) -> str:  # pylint: disable=no-self-use
+    #     """
+    #     If you don't want your outputs in JSON-lines format
+    #     you can override this function to output them differently.
+    #     """
+    #     lines = []
+    #     for instance in outputs["instances"]:
+    #         lines.append(str(instance))
+    #         lines.append("\n")
+    #     return ''.join(lines)
