@@ -7,6 +7,7 @@ from typing import Dict, Tuple, List
 from allennlp.data import Tokenizer, Token
 from ordered_set import OrderedSet
 from unidecode import unidecode
+import random
 
 from dataset_readers.dataset_util.spider_utils import TableColumn, read_dataset_schema, read_dataset_values
 from allennlp.semparse.contexts.knowledge_graph import KnowledgeGraph
@@ -36,7 +37,7 @@ class SpiderDBContext:
 
     def __init__(self, db_id: str, utterance: str,
                  utterance_tokenizer: Tokenizer, entity_tokenizer: Tokenizer,
-                 tables_file: str, dataset_path: str, query: List[str]):
+                 tables_file: str, dataset_path: str, query: List[str], target_schema_size: float):
         self.dataset_path = dataset_path
         self.tables_file = tables_file
         self.db_id = db_id
@@ -51,11 +52,13 @@ class SpiderDBContext:
 
         # find columns used in gold query
         used_columns = defaultdict(set)
+        used_column_names = set()
         next_item_is_table = False
         for item in query:
             if '@' in item:
                 table, column = item.split('@')
                 used_columns[table].add(column)
+                used_column_names.add(item)
             # make sure at least 1 column is used for a table that is used
             elif item.lower() == 'from' or item.lower() == 'join':
                 next_item_is_table = True
@@ -72,12 +75,29 @@ class SpiderDBContext:
                         primary_key = table.get_primary_key()
                         assert primary_key is not None
                         used_columns[item].add(primary_key)
+                        used_column_names.add(f"{item}@{primary_key}")
                 else:
                     assert False, f"Why table {item} wasn't found in schema {SpiderDBContext.schemas[db_id]} for query {query}?"
 
                 next_item_is_table = False
 
         self.used_columns = used_columns
+
+        all_column_names = []
+        for table_name in SpiderDBContext.schemas[db_id].keys():
+            table = SpiderDBContext.schemas[db_id][table_name]
+            for column in table.columns:
+                all_column_names.append(f"{table_name}@{column.name}".lower())
+
+        target_used_column_count = len(all_column_names) * target_schema_size
+
+        while len(used_column_names) < target_used_column_count:
+            column_name = random.sample(all_column_names, 1)[0]
+            if column_name not in used_column_names:
+                table, column = column_name.split('@')
+                used_columns[table].add(column)
+                used_column_names.add(column_name)
+
         # column pre-filtering
         # Test 1: Only keep tables and columns used by gold query to find max possible gain due to column pre-filtering
         self.schema = {}
