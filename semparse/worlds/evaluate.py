@@ -657,10 +657,12 @@ def rebuild_cond_unit_val(cond_unit):
         return cond_unit
 
     not_op, op_id, val_unit, val1, val2 = cond_unit
-    if type(val1) is not dict:
-        val1 = None
-    else:
+    if type(val1) is dict:
         val1 = rebuild_sql_val(val1)
+    elif type(val1) is tuple:
+        pass  # val1 = val1 
+    else:
+        val1 = None
     if type(val2) is not dict:
         val2 = None
     else:
@@ -744,6 +746,8 @@ def rebuild_cond_unit_col(valid_col_units, cond_unit, kmap):
 
     not_op, op_id, val_unit, val1, val2 = cond_unit
     val_unit = rebuild_val_unit_col(valid_col_units, val_unit, kmap)
+    if type(val1) is tuple:
+        val1 = rebuild_col_unit_col(valid_col_units, val1, kmap)
     return not_op, op_id, val_unit, val1, val2
 
 
