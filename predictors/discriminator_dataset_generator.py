@@ -15,21 +15,8 @@ class DiscriminatorDatasetGenerator(Predictor):
     @overrides
     def predict_instance(self, instance: Instance) -> JsonDict:
         utterance = instance.fields['world'].metadata.db_context.utterance
-
         outputs = self._model.forward_on_instance(instance)
-
-        json_output = {"utterance": utterance, "instances": []}
-        unique_instances = {}
-        for candidate in outputs['candidates']:
-            discriminator_instance = candidate
-            # discriminator_instance["utterance"] = utterance
-            unique_key = str(discriminator_instance['tables_used'])  + \
-                         str(discriminator_instance['columns_used']) + \
-                         str(discriminator_instance['target'])
-            unique_instances[unique_key] = discriminator_instance
-
-        json_output["instances"] = list(unique_instances.values()) # unique by tables_used and columns_used
-
+        json_output = {"utterance": utterance, "instances": outputs['candidates']}
         return sanitize(json_output)
 
     # @overrides
