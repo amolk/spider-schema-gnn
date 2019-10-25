@@ -11,6 +11,7 @@ import torch.nn.functional as F
 cuda_is_available = torch.cuda.is_available()
 thresh = 0.10
 
+
 def cuda(obj):
     if cuda_is_available:
         return obj.cuda()
@@ -43,6 +44,16 @@ def create_tokenized_input(tokenizer, nlu, columns, tables):
         tokens += tokenizer.tokenize('[SEP]')
     return tokens, tokenizer.convert_tokens_to_ids(tokens)
 
+def create_tokenized_input_sqlonly(tokenizer, nlu, sql):
+    tokens = []
+    tokens += tokenizer.tokenize('[CLS]')
+    tokens += tokenizer.tokenize(nlu)
+    tokens += tokenizer.tokenize('[SEP]')
+    tokens += tokenizer.tokenize(sql)
+    tokens += tokenizer.tokenize('[SEP]')
+    column_locations = []
+    return tokens, tokenizer.convert_tokens_to_ids(tokens)
+
 def load_model(model_path):
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
@@ -51,8 +62,12 @@ def load_model(model_path):
     model.eval()
     return model, tokenizer
 
-def run_instance(bert_model, tokenizer, utterance, instance):
-    tokens, encoded_tokens = create_tokenized_input(tokenizer, utterance, instance['columns_used'], instance['tables_used'])
+def run_instance(bert_model, tokenizer, utterance, instance, sqlonly):
+    if sqlonly:
+        tokens, encoded_tokens = create_tokenized_input_sqlonly(tokenizer, utterance, instance['sql_query'])
+    else:
+        tokens, encoded_tokens = create_tokenized_input(tokenizer, utterance,
+                                                        instance['columns_used'], instance['tables_used'])
     encoded_tokens = cuda(torch.tensor(encoded_tokens).unsqueeze(0))
     with torch.no_grad():
         outputs = bert_model(encoded_tokens)
@@ -78,7 +93,7 @@ def compare(thresh, a, b):
     b = b['score'] + thresh
     return cmp(a, b)
 
-def get_best_prediction(sample, model, tokenizer):
+def get_best_prediction(sample, model, tokenizer, sqlonly):
     if 'utterance' not in sample or 'instances' not in sample or len(sample['instances']) == 0:
         return None
 
@@ -87,7 +102,7 @@ def get_best_prediction(sample, model, tokenizer):
     myinstances = []
     for instance in instances[:10]:
         instance = instance.copy()
-        pred = run_instance(model, tokenizer, sample['utterance'], instance)
+        pred = run_instance(model, tokenizer, sample['utterance'], instance, sqlonly)
         instance['score'] = pred[0][1].item()
         myinstances.append(instance)
 
@@ -99,6 +114,7 @@ if __name__ == '__main__':
     parser.add_argument('--input-file', dest='input_path', type=str)
     parser.add_argument('--output-file', dest='output_path', type=str)
     parser.add_argument('--model', dest='model_path', type=str)
+    parser.add_argument('--sqlonly', dest='sqlonly', action='store_true')
 
     args = parser.parse_args()
 
@@ -108,7 +124,7 @@ if __name__ == '__main__':
 
     with open(args.output_path, 'w+') as output_file:
         for sample in tqdm(beam_outputs):
-            sql = get_best_prediction(sample, model, tokenizer)
+            sql = get_best_prediction(sample, model, tokenizer, args.sqlonly)
             if sql is None:
                 output_file.write('NO PREDICTION')
             else:
