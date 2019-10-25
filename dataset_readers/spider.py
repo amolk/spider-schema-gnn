@@ -116,13 +116,6 @@ class SpiderDatasetReader(DatasetReader):
                     db_id=ex['db_id'],
                     sql=query_tokens,
                     filtered_columns=filtered_columns)
-                if ins is None:
-                    pdb.set_trace()
-                    ins = self.text_to_instance(
-                        utterance=ex['question'],
-                        db_id=ex['db_id'],
-                        sql=query_tokens,
-                        filtered_columns=filtered_columns)
 
                 if ins is not None:
                     cnt += 1
