@@ -48,6 +48,7 @@ def load_model(model_path):
     model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
     model.load_state_dict(torch.load(model_path))
     model = cuda(model)
+    model.eval()
     return model, tokenizer
 
 def run_instance(bert_model, tokenizer, utterance, instance):
