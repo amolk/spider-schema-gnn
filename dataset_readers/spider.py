@@ -32,8 +32,7 @@ class SpiderDatasetReader(DatasetReader):
                  dataset_path: str = 'dataset/database',
                  load_cache: bool = True,
                  save_cache: bool = True,
-                 loading_limit = -1,
-                 target_schema_size = 0.3):
+                 loading_limit = -1):
         super().__init__(lazy=lazy)
 
         # default spacy tokenizer splits the common token 'id' to ['i', 'd'], we here write a manual fix for that
@@ -53,8 +52,6 @@ class SpiderDatasetReader(DatasetReader):
         self._load_cache = load_cache
         self._save_cache = save_cache
         self._loading_limit = loading_limit
-
-        self._target_schema_size = target_schema_size
 
     @overrides
     def _read(self, file_path: str):
@@ -113,10 +110,20 @@ class SpiderDatasetReader(DatasetReader):
                         print(f"error with {ex['query']}")
                         print(e)
 
+                filtered_columns = ex['filtered_columns'] if 'filtered_columns' in ex else None
                 ins = self.text_to_instance(
                     utterance=ex['question'],
                     db_id=ex['db_id'],
-                    sql=query_tokens)
+                    sql=query_tokens,
+                    filtered_columns=filtered_columns)
+                if ins is None:
+                    pdb.set_trace()
+                    ins = self.text_to_instance(
+                        utterance=ex['question'],
+                        db_id=ex['db_id'],
+                        sql=query_tokens,
+                        filtered_columns=filtered_columns)
+
                 if ins is not None:
                     cnt += 1
                 if self._save_cache:
@@ -128,7 +135,8 @@ class SpiderDatasetReader(DatasetReader):
     def text_to_instance(self,
                          utterance: str,
                          db_id: str,
-                         sql: List[str] = None):
+                         sql: List[str] = None,
+                         filtered_columns: List[float] = None):
         fields: Dict[str, Field] = {}
 
         if not sql:
@@ -137,7 +145,7 @@ class SpiderDatasetReader(DatasetReader):
         db_context = SpiderDBContext(db_id, utterance, utterance_tokenizer=self._utterance_tokenizer,
                                      entity_tokenizer=self._entity_tokenizer,
                                      tables_file=self._tables_file, dataset_path=self._dataset_path,
-                                     query=sql, target_schema_size=self._target_schema_size)
+                                     filtered_columns=filtered_columns)
         table_field = SpiderKnowledgeGraphField(db_context.knowledge_graph,
                                                 db_context.tokenized_utterance,
                                                 token_indexers=self._utterance_token_indexers,

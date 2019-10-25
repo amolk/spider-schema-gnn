@@ -37,77 +37,41 @@ class SpiderDBContext:
 
     def __init__(self, db_id: str, utterance: str,
                  utterance_tokenizer: Tokenizer, entity_tokenizer: Tokenizer,
-                 tables_file: str, dataset_path: str, query: List[str], target_schema_size: float):
+                 tables_file: str, dataset_path: str, filtered_columns: List[float] = None):
         self.dataset_path = dataset_path
         self.tables_file = tables_file
         self.db_id = db_id
         self.utterance = utterance
-        self.query = query
-
         tokenized_utterance = utterance_tokenizer.tokenize(utterance)
         self.tokenized_utterance = [Token(text=t.text, lemma=t.lemma_) for t in tokenized_utterance]
 
         if db_id not in SpiderDBContext.schemas:
             SpiderDBContext.schemas = read_dataset_schema(self.tables_file)
 
-        # find columns used in gold query
-        used_columns = defaultdict(set)
-        used_column_names = set()
-        next_item_is_table = False
-        for item in query:
-            if '@' in item:
-                table, column = item.split('@')
-                used_columns[table].add(column)
-                used_column_names.add(item)
-            # make sure at least 1 column is used for a table that is used
-            elif item.lower() == 'from' or item.lower() == 'join':
-                next_item_is_table = True
-                continue
+        if filtered_columns:
+            used_columns = defaultdict(set)
+            db = SpiderDBContext.schemas[db_id]
+            # print("---- BEFORE ----")
+            # self.print_schema(db)
+            for filtered_column in filtered_columns:
+                if filtered_column != '*': # skip '*' column
+                    table, column = filtered_column.split('@')
+                    used_columns[table.lower()].add(column.lower())
 
-            if next_item_is_table:
-                if item == '(':  # subquery
-                    next_item_is_table = False
+            self.schema = {}
+            for table in used_columns.keys():
+                table_data = self.lookup_case_insensitive(table, db)
+                if not table_data:
                     continue
+                table_name = table_data.name
+                self.schema[table_name] = copy.deepcopy(table_data)
+                self.schema[table_name].columns = [column for column in self.schema[table_name].columns if column.name in used_columns[table]]
 
-                table = self.lookup_case_insensitive(item, SpiderDBContext.schemas[db_id])
-                if table is not None:
-                    if len(used_columns[item]) == 0:
-                        primary_key = table.get_primary_key()
-                        assert primary_key is not None
-                        used_columns[item].add(primary_key)
-                        used_column_names.add(f"{item}@{primary_key}")
-                else:
-                    assert False, f"Why table {item} wasn't found in schema {SpiderDBContext.schemas[db_id]} for query {query}?"
-
-                next_item_is_table = False
-
-        self.used_columns = used_columns
-
-        all_column_names = []
-        for table_name in SpiderDBContext.schemas[db_id].keys():
-            table = SpiderDBContext.schemas[db_id][table_name]
-            for column in table.columns:
-                all_column_names.append(f"{table_name}@{column.name}".lower())
-
-        target_used_column_count = len(all_column_names) * target_schema_size
-
-        while len(used_column_names) < target_used_column_count:
-            column_name = random.sample(all_column_names, 1)[0]
-            if column_name not in used_column_names:
-                table, column = column_name.split('@')
-                used_columns[table].add(column)
-                used_column_names.add(column_name)
-
-        # column pre-filtering
-        # Test 1: Only keep tables and columns used by gold query to find max possible gain due to column pre-filtering
-        self.schema = {}
-        for table in used_columns.keys():
-            table_data = self.lookup_case_insensitive(table, SpiderDBContext.schemas[db_id])
-            if not table_data:
-                continue
-            table_name = table_data.name
-            self.schema[table_name] = copy.deepcopy(table_data)
-            self.schema[table_name].columns = [column for column in self.schema[table_name].columns if column.name.lower() in used_columns[table]]
+            # print("---- AFTER ----")
+            # self.print_schema(self.schema)
+        else:
+            self.schema = SpiderDBContext.schemas[db_id]
+            # self.print_schema(self.schema)
 
         self.knowledge_graph = self.get_db_knowledge_graph(db_id)
 
@@ -120,6 +84,13 @@ class SpiderDBContext:
 
         entity_tokens = entity_tokenizer.batch_tokenize(entity_texts)
         self.entity_tokens = [[Token(text=t.text, lemma=t.lemma_) for t in et] for et in entity_tokens]
+
+    @staticmethod
+    def print_schema(schema):
+        for table_name in schema.keys():
+            print("Table", table_name)
+            for column in schema[table_name].columns:
+                print("    - ", column.name)
 
     @staticmethod
     def lookup_case_insensitive(lookup_key: str, lookup_dict: Dict):
