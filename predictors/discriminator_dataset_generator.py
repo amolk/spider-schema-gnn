@@ -10,6 +10,9 @@ from allennlp.predictors.predictor import Predictor
 class DiscriminatorDatasetGenerator(Predictor):
     def __init__(self, model: Model, dataset_reader: DatasetReader) -> None:
         super().__init__(model, dataset_reader)
+        model._beam_search._beam_size = 40
+        model._beam_search._per_node_beam_size = 40
+
 
     @overrides
     def predict_instance(self, instance: Instance) -> JsonDict:

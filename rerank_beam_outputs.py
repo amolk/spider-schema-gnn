@@ -100,7 +100,7 @@ def get_best_prediction(sample, model, tokenizer, sqlonly):
     compare_f = functools.partial(compare, thresh)
     instances = sample['instances']
     myinstances = []
-    for instance in instances[:10]:
+    for instance in instances[:40]:
         instance = instance.copy()
         pred = run_instance(model, tokenizer, sample['utterance'], instance, sqlonly)
         instance['score'] = pred[0][1].item()
