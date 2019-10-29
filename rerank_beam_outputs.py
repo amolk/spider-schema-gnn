@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 
 cuda_is_available = torch.cuda.is_available()
-thresh = 0.10
+thresh = 0.10  # 15% seems to be very slightly better, but 10% has performed well on multiple experiments
 
 
 def cuda(obj):
@@ -68,6 +68,8 @@ def run_instance(bert_model, tokenizer, utterance, instance, sqlonly):
     else:
         tokens, encoded_tokens = create_tokenized_input(tokenizer, utterance,
                                                         instance['columns_used'], instance['tables_used'])
+        if len(encoded_tokens) > 511:  # Not cause a BERT exception
+            return None
     encoded_tokens = cuda(torch.tensor(encoded_tokens).unsqueeze(0))
     with torch.no_grad():
         outputs = bert_model(encoded_tokens)
@@ -89,8 +91,8 @@ def cmp(x, y):
     return (x > y) - (x < y)
 
 def compare(thresh, a, b):
-    a = a['score']
-    b = b['score'] + thresh
+    a = a['score']  #   a is index
+    b = b['score'] + thresh  # b is index+1
     return cmp(a, b)
 
 def get_best_prediction(sample, model, tokenizer, sqlonly):
@@ -100,13 +102,18 @@ def get_best_prediction(sample, model, tokenizer, sqlonly):
     compare_f = functools.partial(compare, thresh)
     instances = sample['instances']
     myinstances = []
-    for instance in instances[:10]:
+    for instance in instances[:40]:
         instance = instance.copy()
         pred = run_instance(model, tokenizer, sample['utterance'], instance, sqlonly)
+        if pred is None:  # If any of them don't return a pred, we stop reranking there
+            break
         instance['score'] = pred[0][1].item()
         myinstances.append(instance)
 
-    pred_instance = list(reversed(sorted(myinstances, key=functools.cmp_to_key(compare_f))))[0]
+    if len(myinstances) == 0:
+        pred_instance = instances[0]  # If nothing was rerankable, just use the first instance
+    else:
+        pred_instance = list(reversed(sorted(myinstances, key=functools.cmp_to_key(compare_f))))[0]
     return pred_instance['sql_query']
 
 if __name__ == '__main__':
