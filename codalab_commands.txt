@@ -1,0 +1,36 @@
+> cl new gotitnet-spider
+> cl work gotitnet-spider
+> cl upload requirements.txt
+0xd41973eae5e9475087544bf52c416cae
+> cl add bundle 0xd41973eae5e9475087544bf52c416cae
+> cl upload dataset_readers
+0x562f8d10a31c4409bd01910450d2a80d
+> cl upload models
+0x76bc866028634e00bab3f48ebbc9f5e8
+> cl upload modules
+0x9bb5e9484a8f423e826ee814f522b780
+> cl upload predictors
+0x3236463b8c5944be8ab884dd74171967
+> cl upload semparse
+0x2c07c00808f1468a96507b2c4c3ff117
+> cl upload spider_evaluation
+0x450f251892734fafafc203422e5e6d0d
+> cl upload state_machines
+0x0ca86770ca8449a2aa1edf476ae0bb63
+> cl upload rerank_beam_outputs.py
+0x4f9576e87c7c4b049ced7ae0441a5ce6
+> cl upload predict.sh
+0xc46e83dcc3024b5e994879dad5e711ee
+
+> mkdir trained_model
+> gsutil cp gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/best.th trained_model/model.th
+> gsutil cp gs://gotit-models/gnn-bert/best_discrim_model_full_spider_retrained.state.pth trained_model/reranker.th
+> gsutil cp gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/config.json trained_model/
+> gsutil cp -r gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/vocabulary trained_model/
+
+> cl upload trained_model
+0x1e99df4fb8424a5581c15a97c481e86a
+
+cl run "dataset:0xb357bf" "dataset_readers:0x562f8d10a31c4409bd01910450d2a80d" "models:0x76bc866028634e00bab3f48ebbc9f5e8" "modules:0x9bb5e9484a8f423e826ee814f522b780" "predictors:0x3236463b8c5944be8ab884dd74171967" "semparse:0x2c07c00808f1468a96507b2c4c3ff117" "spider_evaluation:0x450f251892734fafafc203422e5e6d0d" "state_machines:0x0ca86770ca8449a2aa1edf476ae0bb63" "rerank_beam_outputs.py:0x4f9576e87c7c4b049ced7ae0441a5ce6" "trained_model:0x1e99df4fb8424a5581c15a97c481e86a" "sh predict.sh" -n run-predictions
+
+cl run :dataset :dataset_readers :models :modules :predictors :semparse :spider_evaluation :state_machines :rerank_beam_outputs.py :trained_model "sh predict.sh" -n run-predictions
