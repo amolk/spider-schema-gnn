@@ -68,8 +68,8 @@ def run_instance(bert_model, tokenizer, utterance, instance, sqlonly):
     else:
         tokens, encoded_tokens = create_tokenized_input(tokenizer, utterance,
                                                         instance['columns_used'], instance['tables_used'])
-        if len(encoded_tokens) > 511:  # Not cause a BERT exception
-            return None
+    if len(encoded_tokens) > 511:  # Not cause a BERT exception
+        return None
     encoded_tokens = cuda(torch.tensor(encoded_tokens).unsqueeze(0))
     with torch.no_grad():
         outputs = bert_model(encoded_tokens)
