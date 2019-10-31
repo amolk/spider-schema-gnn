@@ -1,36 +1,58 @@
-> cl new gotitnet-spider
-> cl work gotitnet-spider
-> cl upload requirements.txt
-0xd41973eae5e9475087544bf52c416cae
-> cl add bundle 0xd41973eae5e9475087544bf52c416cae
-> cl upload dataset_readers
-0x562f8d10a31c4409bd01910450d2a80d
-> cl upload models
-0x76bc866028634e00bab3f48ebbc9f5e8
-> cl upload modules
-0x9bb5e9484a8f423e826ee814f522b780
-> cl upload predictors
-0x3236463b8c5944be8ab884dd74171967
-> cl upload semparse
-0x2c07c00808f1468a96507b2c4c3ff117
-> cl upload spider_evaluation
-0x450f251892734fafafc203422e5e6d0d
-> cl upload state_machines
-0x0ca86770ca8449a2aa1edf476ae0bb63
-> cl upload rerank_beam_outputs.py
-0x4f9576e87c7c4b049ced7ae0441a5ce6
-> cl upload predict.sh
-0xc46e83dcc3024b5e994879dad5e711ee
+# trained model files
+mkdir trained_model
+gsutil cp gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/best.th trained_model/model.th
+gsutil cp gs://gotit-models/gnn-bert/best_discrim_model_full_spider_retrained_sqlonly.state.pth trained_model/reranker.th
+gsutil cp gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/config.json trained_model/
+gsutil cp -r gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/vocabulary trained_model/
 
-> mkdir trained_model
-> gsutil cp gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/best.th trained_model/model.th
-> gsutil cp gs://gotit-models/gnn-bert/best_discrim_model_full_spider_retrained.state.pth trained_model/reranker.th
-> gsutil cp gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/config.json trained_model/
-> gsutil cp -r gs://gotit-models/gnn-bert/12Oct2019/bert-spider-full/vocabulary trained_model/
+# upload to codalab
+# cl new russell_submission
+cl work russell_submission
+cl upload dataset_readers
+cl upload models
+cl upload modules
+cl upload predictors
+cl upload semparse
+cl upload spider_evaluation
+cl upload state_machines
+cl upload rerank_beam_outputs.py
+cl upload requirements.txt
+cl upload predict.sh
+cl upload trained_model
 
-> cl upload trained_model
-0x1e99df4fb8424a5581c15a97c481e86a
+# start a run on codalab
+cl run :dataset_readers :models :modules :predictors :semparse :spider_evaluation :state_machines :rerank_beam_outputs.py :requirements.txt "predict.sh:0x8a39c9" :trained_model "data:0xb357bf" "sh ./predict.sh dataset/dev.json predictions.sql" -n run-predictions --request-network --request-docker-image floydhub/pytorch:1.1.0-gpu.cuda9cudnn7-py3.45 --request-time 120m --request-gpus 1 --request-memory 16g --request-disk 5g --request-queue tag=gotit
 
-cl run "dataset:0xb357bf" "dataset_readers:0x562f8d10a31c4409bd01910450d2a80d" "models:0x76bc866028634e00bab3f48ebbc9f5e8" "modules:0x9bb5e9484a8f423e826ee814f522b780" "predictors:0x3236463b8c5944be8ab884dd74171967" "semparse:0x2c07c00808f1468a96507b2c4c3ff117" "spider_evaluation:0x450f251892734fafafc203422e5e6d0d" "state_machines:0x0ca86770ca8449a2aa1edf476ae0bb63" "rerank_beam_outputs.py:0x4f9576e87c7c4b049ced7ae0441a5ce6" "trained_model:0x1e99df4fb8424a5581c15a97c481e86a" "sh predict.sh" -n run-predictions
+##### Running locally in docker
+# from gnn folder
+docker run --gpus all -it \
+-v `pwd`/datasets/spider:/workspace/dataset \
+-v `pwd`/dataset_readers:/workspace/dataset_readers \
+-v `pwd`/models:/workspace/models \
+-v `pwd`/modules:/workspace/modules \
+-v `pwd`/predictors:/workspace/predictors \
+-v `pwd`/semparse:/workspace/semparse \
+-v `pwd`/spider_evaluation:/workspace/spider_evaluation \
+-v `pwd`/state_machines:/workspace/state_machines \
+-v `pwd`/trained_model:/workspace/trained_model \
+-v `pwd`/rerank_beam_outputs.py:/workspace/rerank_beam_outputs.py \
+-v `pwd`/predict.sh:/workspace/predict.sh \
+-v `pwd`/requirements.txt:/workspace/requirements.txt \
+amolk/spider-submission:ready2 \
+bash
 
-cl run :dataset :dataset_readers :models :modules :predictors :semparse :spider_evaluation :state_machines :rerank_beam_outputs.py :trained_model "sh predict.sh" -n run-predictions
+##### Creating CodaLab worker #####
+# Log into GCE instance
+# Create a new GCE instance using OS Image "Deep Learning Image: PyTorch 1.1.0 and fastai m32"
+# Docker is already installed with CUDA support
+# Create a virtualenv to install python3 packages
+# Install codalab and run worker
+
+## Troubleshooting
+# Follow https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-18-04 to install docker
+# install https://github.com/NVIDIA/nvidia-docker (`docker run --gpus all nvidia/cuda:9.0-base nvidia-smi` should succeed)
+# Follow https://codalab-worksheets.readthedocs.io/en/latest/Execution/#running-your-own-worker to run a codalab worker
+# Follow https://github.com/nvidia/nvidia-container-runtime#docker-engine-setup if you get error "Unknown runtime specified nvidia"
+# `sudo apt install nvidia-container-runtime` -- if you get error "DockerException: Problem getting NVIDIA devices: 500 Server Error"
+
+
