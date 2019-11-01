@@ -57,6 +57,7 @@ class SpiderParser(Model):
                  add_action_bias: bool = True,
                  use_neighbor_similarity_for_linking: bool = True,
                  dataset_path: str = 'dataset',
+                 database_path: str = None,
                  training_beam_size: int = None,
                  decoder_num_layers: int = 1,
                  dropout: float = 0.0,
@@ -151,8 +152,11 @@ class SpiderParser(Model):
         self._neighbor_params = torch.nn.Linear(self._embedding_dim, self._embedding_dim)
 
         # TODO: Remove hard-coded dirs
+        if database_path is None:
+          database_path = os.path.join(dataset_path, 'database')
+
         self._evaluate_func = partial(evaluate,
-                                      db_dir=os.path.join(dataset_path, 'database'),
+                                      db_dir=database_path,
                                       table=os.path.join(dataset_path, 'tables.json'),
                                       check_valid=False)
 
