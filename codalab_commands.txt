@@ -22,7 +22,7 @@ cl upload trained_model
 cl upload datasets/spider/dev_gold.sql
 
 # start a run on codalab
-cl run :dataset_readers :models :modules :predictors :semparse :spider_evaluation :state_machines :rerank_beam_outputs.py :requirements.txt "predict.sh:0x7517390c66f24fe9bc1c7d3502629821" :trained_model :database :dev_gold.sql "dataset:0xb357bf" "sh ./predict.sh dataset/dev.json predictions.sql" -n run-predictions --request-network --request-docker-image amolk/spider-submission:ready2 --request-time 120m --request-gpus 1 --request-memory 16g --request-disk 4g --request-queue tag=gotit
+cl run :dataset_readers :models :modules :predictors :semparse :spider_evaluation :state_machines :rerank_beam_outputs.py :requirements.txt :predict.sh :trained_model :database :dev_gold.sql "dataset:0xb357bf" "sh ./predict.sh dataset/dev.json predictions.sql" -n run-predictions --request-network --request-docker-image amolk/spider-submission:ready2 --request-time 120m --request-gpus 1 --request-memory 16g --request-disk 4g
 
 floydhub/pytorch:1.1.0-gpu.cuda9cudnn7-py3.45
 
