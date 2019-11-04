@@ -65,6 +65,10 @@ class SpiderParser(Model):
                  scoring_dev_params: dict = None,
                  debug_parsing: bool = False) -> None:
         super().__init__(vocab)
+        if not self.training:
+          torch.backends.cudnn.deterministic = True
+          torch.backends.cudnn.benchmark = False
+
         self.vocab = vocab
         self._encoder = encoder
         self._max_decoding_steps = max_decoding_steps
