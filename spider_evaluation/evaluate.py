@@ -19,6 +19,7 @@
 # }
 ################################
 import copy
+import csv
 import os
 import json
 import sqlite3
@@ -494,6 +495,7 @@ def evaluate(gold, predict, db_dir, etype, kmaps):
                      'group', 'order', 'and/or', 'IUEN', 'keywords']
     entries = []
     scores = {}
+    debug_output = []
 
     for level in levels:
         scores[level] = {'count': 0, 'partial': {}, 'exact': 0.}
@@ -593,6 +595,12 @@ def evaluate(gold, predict, db_dir, etype, kmaps):
                 'partial': partial_scores
             })
 
+        debug_output.append([
+            hardness,
+            g_str,
+            p_str,
+        ])
+
     for level in levels:
         if scores[level]['count'] == 0:
             continue
@@ -620,6 +628,10 @@ def evaluate(gold, predict, db_dir, etype, kmaps):
                         scores[level]['partial'][type_]['rec'] + scores[level]['partial'][type_]['acc'])
 
     print_scores(scores, etype)
+    with open('debug_output.csv', 'w') as csvfile:
+        csvwriter = csv.writer(csvfile, delimiter="\t")
+        for row in debug_output:
+            csvwriter.writerow(row)
 
 
 def eval_exec_match(db, p_str, g_str, pred, gold):
