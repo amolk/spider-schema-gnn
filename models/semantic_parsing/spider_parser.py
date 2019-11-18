@@ -1,6 +1,6 @@
 import pdb
 import pprint
-
+import numpy as np 
 import difflib
 import os
 from functools import partial
@@ -254,6 +254,16 @@ class SpiderParser(Model):
         schema_embedding = torch.stack(embeddings)
         return schema_embedding
 
+
+    def _extended_utterances_per_column(self, utterance: Dict[str, torch.LongTensor], extended_utterance: Dict[str, torch.LongTensor], item_in_batch: int):
+        n_columns = len(np.unique(extended_utterance['tokens-type-ids'][item_in_batch])) - 1
+        print(n_columns)
+        pdb.set_trace()
+        for idx in range(n_columns): 
+            indices = [col_idx if val == idx else 0 for col_idx, val in enumerate(extended_utterance['tokens-type-ids'][item_in_batch])]
+
+        pdb.set_trace()
+
     def _extract_embeddings(self,
                            utterance: Dict[str, torch.LongTensor],
                            extended_utterance: Dict[str, torch.LongTensor],
@@ -261,6 +271,10 @@ class SpiderParser(Model):
         device = utterance['tokens'].device
         batch_size = utterance['tokens'].shape[0]
 
+        self._extended_utterances_per_column(utterance, extended_utterance, 0)
+
+
+        
         extended_utterance_embeddings = self._question_embedder(extended_utterance)
         embedded_utterance = torch.stack([extended_utterance_embeddings[i,utterance['tokens-offsets'][i],:] for i in range(batch_size)])
         _, num_question_tokens, _ = embedded_utterance.shape
