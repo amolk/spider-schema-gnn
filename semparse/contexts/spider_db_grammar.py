@@ -31,7 +31,8 @@ GRAMMAR_DICTIONARY["select_result"] = ['"*"', '(table_source ws ".*")',
 GRAMMAR_DICTIONARY["from_clause"] = ['(ws "from" ws table_source ws join_clauses)',
                                      '(ws "from" ws source)']
 GRAMMAR_DICTIONARY["join_clauses"] = ['(join_clause ws join_clauses)', 'join_clause']
-GRAMMAR_DICTIONARY["join_clause"] = ['"join" ws table_source ws "on" ws join_condition_clause']
+GRAMMAR_DICTIONARY["join_type"] = ['("join")', '("left" ws "join")']
+GRAMMAR_DICTIONARY["join_clause"] = ['join_type ws table_source ws "on" ws join_condition_clause']
 GRAMMAR_DICTIONARY["join_condition_clause"] = ['(join_condition ws "and" ws join_condition_clause)', 'join_condition']
 GRAMMAR_DICTIONARY["join_condition"] = ['ws col_ref ws "=" ws col_ref']
 GRAMMAR_DICTIONARY["source"] = ['(ws single_source ws "," ws source)', '(ws single_source)']

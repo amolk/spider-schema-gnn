@@ -732,10 +732,10 @@ def rebuild_table_unit_col(valid_col_units, table_unit, kmap):
     if table_unit is None:
         return table_unit
 
-    table_type, col_unit_or_sql = table_unit
+    table_type, col_unit_or_sql, join_type = table_unit
     if isinstance(col_unit_or_sql, tuple):
         col_unit_or_sql = rebuild_col_unit_col(valid_col_units, col_unit_or_sql, kmap)
-    return table_type, col_unit_or_sql
+    return table_type, col_unit_or_sql, join_type
 
 
 def rebuild_cond_unit_col(valid_col_units, cond_unit, kmap):
