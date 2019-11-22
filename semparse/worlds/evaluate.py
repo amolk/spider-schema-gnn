@@ -732,7 +732,13 @@ def rebuild_table_unit_col(valid_col_units, table_unit, kmap):
     if table_unit is None:
         return table_unit
 
-    table_type, col_unit_or_sql, join_type = table_unit
+    if len(table_unit) == 2:
+        table_type, col_unit_or_sql = table_unit
+        join_type = None
+    elif len(table_unit) == 3:
+        table_type, col_unit_or_sql, join_type = table_unit
+    else:
+        raise Exception(f"Unexpected table_unit {table_unit}")
     if isinstance(col_unit_or_sql, tuple):
         col_unit_or_sql = rebuild_col_unit_col(valid_col_units, col_unit_or_sql, kmap)
     return table_type, col_unit_or_sql, join_type
