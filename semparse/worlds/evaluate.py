@@ -33,7 +33,7 @@ DISABLE_DISTINCT = True
 
 
 CLAUSE_KEYWORDS = ('select', 'from', 'where', 'group', 'order', 'limit', 'intersect', 'union', 'except')
-JOIN_KEYWORDS = ('join', 'on', 'as')
+JOIN_KEYWORDS = ('left', 'join', 'on', 'as')
 
 WHERE_OPS = ('not', 'between', '=', '>', '<', '>=', '<=', '!=', 'in', 'like', 'is', 'exists')
 UNIT_OPS = ('none', '-', '+', "*", '/')
