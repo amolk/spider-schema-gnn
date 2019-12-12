@@ -129,7 +129,13 @@ def fix_number_value(ex: JsonDict):
     ex['query_toks'] = []
     for q in query_toks:
         ex['query_toks'] += split_and_keep(q, '.')
+        
+    query_toks_no_value = ex['query_toks_no_value']
+    ex['query_toks_no_value'] = []
+    for q in query_toks_no_value:
+        ex['query_toks_no_value'] += split_and_keep(q, '.')
 
+        
     i_val, i_no_val = 0, 0
     while i_val < len(ex['query_toks']) and i_no_val < len(ex['query_toks_no_value']):
         if ex['query_toks_no_value'][i_no_val] != 'value':
