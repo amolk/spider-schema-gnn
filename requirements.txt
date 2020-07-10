@@ -1,12 +1,16 @@
-torch
+--find-links https://s3.eu-central-1.amazonaws.com/pytorch-geometric.com/whl/torch-1.4.0.html
+
+torch==1.4.0
+numpy==1.19.0
+torch-scatter==latest+cu101
+torch-sparse==latest+cu101
+torch-cluster==latest+cu101
+torch-geometric==1.6.0
+scikit-learn==0.22.2
 spacy==2.0.18
 allennlp==0.8.2
-dill
-torch-scatter
-torch-sparse
-torch-cluster
-torch-geometric
-ordered_set
+dill==0.3.2
+ordered_set==4.0.2
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.0.0/en_core_web_sm-2.0.0.tar.gz
 pathlib==1.0.1
 transformers==2.1.1
