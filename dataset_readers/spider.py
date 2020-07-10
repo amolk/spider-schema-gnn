@@ -154,9 +154,10 @@ class SpiderDatasetReader(DatasetReader):
         # flatten
         wps = [item for sublist in wps for item in sublist]
 
-        # if too many tokens, don't load this example
+        # if too many tokens, truncate
         if len(wps) >= 512:
-            return None
+            wps = wps[0:510]
+            wps.append('[SEP]')
 
         fields["extended_utterance"] = TextField(tokens, self._utterance_token_indexers)
 
